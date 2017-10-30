@@ -17,7 +17,8 @@
   "repository": "kei-ito/j1",
   "main": "lib/index.js",
   "scripts": {
-    "test": "node lib/test && eslint --max-warnings 0 'lib/**/*.js'"
+    "test": "node lib/test && eslint --max-warnings 0 'lib/**/*.js'",
+    "test_coverage": "istanbul cover lib/test && eslint --max-warnings 0 'lib/**/*.js'"
   },
   "dependencies": {
     "chalk": "^2.3.0"
