@@ -1,5 +1,8 @@
 # @nlib/test
 
+[![Build Status](https://travis-ci.org/nlibjs/test.svg?branch=master)](https://travis-ci.org/nlibjs/test)
+[![Build status](https://ci.appveyor.com/api/projects/status/a6e5cq05uvqn6fjk/branch/master?svg=true)](https://ci.appveyor.com/project/kei-ito/test/branch/master)
+
 A test runner.
 
 ## Install
