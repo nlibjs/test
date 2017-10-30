@@ -1,0 +1,22 @@
+language: node_js
+node_js:
+- '8'
+- '7'
+- '6'
+install:
+- npm install
+script:
+- node --version
+- npm --version
+- npm test
+deploy:
+  provider: npm
+  email: kei.itof@gmail.com
+  api_key:
+    secure: NpNvBEhzWodL/uVnB2uDOuhuKi2/U1aVMlo+o+FLXzPq9esKwaWNKs8zhSE9XoifJtj5PlkDRvWCmETsFLmzgBs5cj9vJtS2zHvjjZHa/6itTX+LFXuMV8d0BWSLxUKqaXLXBTS5Gx0a5OQTp9PnXbZaZuYJpcHEUWkCRMPotapPHZPVU3Bh2ufhO9eASBY+xZkc7JdyuaaALt45kiJDdytwXO+NifFlgpU02841y7CqV3ZpRcKaPrpwzgMxh7i1wfRuwH7JvAo4kHo474tNEfCYvVJR/j+/4dyTWoGNlpOi02NLteVlECODtIuYQsL+fPSGD/AVL3kslZDgTFVnYXlumzeDKOltn1oedImIk1i9vB0t6LAivuhrxPlxL+z0C2Xc4uAZIG/BFO+GORGwP8ivS8VKCuoMDRtaLxGfNBimARA4MehtV7LvSBT5Ilb/vo6eqVAx9RQbG0aHyxyZLDJZ2S3vLpwftOzHG1KUzFK89T75qXkzA0PhiRd9nEsfruNJEjwIzshAqJr3s1TbhhsxhcIrTgJcpq9RiqD5Zrs8IVGVl4GOys9jPjkM997VNFKXZH8foOYMOGQ/17IMeySm7uzwjd9heMyI8oL3JaJvO7d7wCE0VsD1OJKgpEDrW1wXNA6n6zEZQS0bvOAu9d3dkKn63UiVWb/JfOmmpX4=
+  on:
+    tags: true
+    repo: nlibjs/test
+notifications:
+  slack:
+    secure: M0WBdlhjK/l9dq8gu61vfx4cFXXztzTMf52uHZYkdRTH8URWO0nBVIi59/ojrU4HzRRsz7LnGc2QzhItAWLHLqnBp25/rmlFhaxL3HFUBNpJmBOC8JJay3KmCqH0oyfxxBa2+Z9BB03uU+SHvGC/AvtFoyKbQCpuWdA9Mbbh5358B8JG5CAkEjFx0r8Jq1nLcltrjjkzDsH4/LuhoMabVxVfn9HkaEbItMp7hYlJxwes4/zhAel4mwkim4hWdowlXtJKihAbRPHcWx8WrwL57udCHA9GMDUZyEC3NGTmLc/tvMO8BCv9ar59jJ+fz0a6dWk9F49pcuIki/fhp9uvIuB7VWUMFrYr8vNFj39eQNlegE5OYOANbNygRYhH56G539ToUepqMWItvOdea2LCzuCFKpSzsN9AaYEm2MS7R+/xnoZtk7IwasSXsHCwg/m4IdnYIhCt10tPw+NKKvYI1ddrr0bhEsMA+lPhLwcrdyhWFg1xdYUvo5F8xJVo6yzkY5+PvlkYbuvT72FcYv+MWzERMkK+eZDJA/WNspBCMIJC5rjp9GOKFjomfvh5EHkksGSQtoROQbC25YpdqvcuXhGKyGFL4Baau3PnBBuArFuKwk6iUtpzGkxrGEK4ZWDM5J2Vg/UhZgpR+ovzul8THuu4UKk3+pL/3W2sgnFkJiw=
