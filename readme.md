@@ -45,7 +45,7 @@ test('add', function (test) {
 });
 ```
 
-![output: sample/00-sync.js](https://github.com/nlibjs/test/blob/master/test/images/00-sync.png)
+![output: sample/00-sync.js](https://github.com/nlibjs/test/raw/master/images/00-sync.png)
 
 ### Asynchronous tests
 
@@ -92,7 +92,7 @@ test('wait', function (test) {
 });
 ```
 
-![output: sample/01-async.js](https://github.com/nlibjs/test/blob/master/test/images/01-async.png)
+![output: sample/01-async.js](https://github.com/nlibjs/test/raw/master/images/01-async.png)
 
 ## JavaScript API
 
