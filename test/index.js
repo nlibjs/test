@@ -1,5 +1,5 @@
 /* eslint-disable no-empty-function, prefer-arrow-callback, consistent-this, no-invalid-this */
-const packageJSON = require('../../package.json');
+const packageJSON = require('../package.json');
 const console = require('console');
 const assert = require('assert');
 const chalk = require('chalk');
@@ -386,8 +386,11 @@ Promise.resolve()
 	throw new Error(`${packageJSON.name} failed to exit the process`);
 })
 .catch((error) => {
-	console.groupEnd();
-	console.log(`${chalk.red('✖︎')} ${packageJSON.name} doesn't pass the tests`);
-	console.error(error);
-	process.exit(1);
+	try {
+		console.groupEnd();
+	} finally {
+		console.log(`${chalk.red('✖︎')} ${packageJSON.name} doesn't pass the tests`);
+		console.error(error);
+		process.exit(1);
+	}
 });
