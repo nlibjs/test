@@ -17,8 +17,9 @@
   "repository": "nlibjs/test",
   "main": "lib/index.js",
   "scripts": {
-    "test": "node test && eslint --max-warnings 0 'lib/**/*.js' 'test/**/*.js'",
-    "test_coverage": "istanbul cover test && eslint --max-warnings 0 'lib/**/*.js' 'test/**/*.js'"
+    "eslint": "eslint --max-warnings 0 'lib/**/*.js' 'test/**/*.js'",
+    "test": "node test && npm run eslint",
+    "test_coverage": "istanbul cover test && npm run eslint"
   },
   "dependencies": {
     "chalk": "^2.3.0"
