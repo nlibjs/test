@@ -1,14 +1,18 @@
 language: node_js
 node_js:
-- '8'
-- '7'
-- '6'
+  - '8'
+  - '7'
+  - '6'
 install:
-- npm install
+  - npm install
 script:
-- node --version
-- npm --version
-- npm run test_coverage
+  - node --version
+  - npm --version
+  - npm run test_coverage
+after_success:
+  - npm install coveralls --save-dev
+  - cat coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js
+  - git stash
 deploy:
   provider: npm
   email: kei.itof@gmail.com
