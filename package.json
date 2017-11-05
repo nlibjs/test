@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A test runner",
   "author": {
     "name": "Kei Ito",
@@ -16,10 +16,13 @@
   },
   "repository": "nlibjs/test",
   "main": "lib/index.js",
+  "bin": {
+    "nlib-test": "cli/index.js"
+  },
   "scripts": {
     "eslint": "eslint --max-warnings 0 'lib/**/*.js' 'test/**/*.js'",
-    "test": "node test && npm run eslint",
-    "test_coverage": "istanbul cover test && npm run eslint"
+    "test": "node lib/test && node cli/test && npm run eslint",
+    "test_coverage": "istanbul cover lib/test && node cli/test && npm run eslint"
   },
   "dependencies": {
     "chalk": "^2.3.0"
