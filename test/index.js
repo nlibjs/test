@@ -1,12 +1,12 @@
 /* eslint-disable no-empty-function, prefer-arrow-callback, consistent-this, no-invalid-this */
-const packageJSON = require('../../package.json');
+const packageJSON = require('../package.json');
 const console = require('console');
 const assert = require('assert');
 const chalk = require('chalk');
 const test = require('..');
 
 function expectedError(message = '') {
-	const error = new Error(`Expected error ${message}`);
+	const error = new Error(`Expected error - ${message}`);
 	error.code = 'EEXPECTED';
 	return error;
 }
@@ -16,28 +16,9 @@ Promise.resolve()
 	console.group(packageJSON.name);
 })
 .then(() => {
-	const name = 'clones a promise';
-	let original;
-	test(name, function () {
-		original = this;
-	}, {exitProcessOnEnd: false});
-	const actual = original.clone();
-	assert(actual.eq(original), `Failed: ${name}`);
-})
-.then(() => {
 	const name = 'returns a promise';
 	const actual = test(name, () => {}, {exitProcessOnEnd: false});
 	assert(actual instanceof Promise, `Failed: ${name}`);
-})
-.then(() => {
-	const name = 'returns a same promise';
-	let original;
-	test(name, function () {
-		original = this;
-	}, {exitProcessOnEnd: false});
-	const expected = original.run();
-	const actual = original.run();
-	assert.equal(actual, expected, `Failed: ${name}`);
 })
 .then(() => {
 	const name = 'calls the given function with the next test:Function';
@@ -364,16 +345,9 @@ Promise.resolve()
 	console.groupEnd();
 })
 .then(() => {
-	const name = 'exit the process';
-	return test(
-		name,
-		() => {
-			console.log(`${chalk.green('✔︎')} ${packageJSON.name} passed the tests`);
-		}
-	);
-})
-.then(() => {
-	throw new Error(`${packageJSON.name} failed to exit the process`);
+	test.onEnd = () => {
+		console.log(`${chalk.green('✔︎')} ${packageJSON.name} passed the tests`);
+	};
 })
 .catch((error) => {
 	try {

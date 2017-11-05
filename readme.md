@@ -106,9 +106,6 @@ The return value can be a promise.
 *child_test* is a function which has the same interface as **test**.
 Tests run by *child_test* are reported as sub tests of a parent test made by **test**().
 - *options*: configures its behavior.
-  - *exitProcessOnEnd*: Boolean.
-  When it is true, [process.exit](https://nodejs.org/api/process.html#process_process_exit_code) is called after the test.
-  The default value is *true* for root tests and *false* for child tests.
   - *rejectable*: Boolean.
   When it is false, `test()` returns a promise will be resolved even if it caught an error.
   This means tests aren't stopped by error.
