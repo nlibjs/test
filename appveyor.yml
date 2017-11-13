@@ -8,9 +8,9 @@ install:
   - node --version
   - npm --version
   - npm install
-  - npm install -g codecov
 test_script:
   - npm run test_coverage
 on_success:
+  - npm install -g codecov
   - codecov
 build: off
