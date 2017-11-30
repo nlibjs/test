@@ -1,4 +1,3 @@
-/* eslint-disable no-empty-function, prefer-arrow-callback, consistent-this, no-invalid-this */
 const packageJSON = require('../package.json');
 const console = require('console');
 const assert = require('assert');
@@ -25,7 +24,7 @@ Promise.resolve()
 	let actual;
 	return test(
 		name,
-		function (arg) {
+		(arg) => {
 			actual = arg;
 		},
 		{exitProcessOnEnd: false}
@@ -56,7 +55,7 @@ Promise.resolve()
 	let actual;
 	return test(
 		name,
-		function () {
+		() => {
 			return new Promise((resolve) => {
 				setTimeout(() => {
 					actual = true;
@@ -308,7 +307,7 @@ Promise.resolve()
 	const name = 'catches a timeout error';
 	return test(
 		name,
-		function () {
+		() => {
 			return new Promise((resolve) => {
 				setTimeout(() => {
 					resolve();
