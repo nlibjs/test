@@ -9,8 +9,9 @@ function wait(duration, data) {
 	});
 }
 
-test('wait', function (test) {
-	test('50ms', function () {
+test('wait', (test) => {
+
+	test('50ms', () => {
 		const start = new Date();
 		return wait(50)
 		.then(() => {
@@ -18,7 +19,8 @@ test('wait', function (test) {
 			assert(45 < end - start);
 		});
 	});
-	test('3000ms (1)', function () {
+
+	test('3000ms (1)', () => {
 		const start = new Date();
 		return wait(3000)
 		.then(() => {
@@ -26,13 +28,14 @@ test('wait', function (test) {
 			assert(2700 < end - start);
 		});
 	});
-	test('3000ms (2)', function () {
+
+	test('3000ms (2)', () => {
 		const start = new Date();
-		this.timeout = 4000;
 		return wait(3000)
 		.then(() => {
 			const end = new Date();
 			assert(2700 < end - start);
 		});
-	});
+	}, {timeout: 4000});
+
 });

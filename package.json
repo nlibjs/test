@@ -22,9 +22,9 @@
     "test_coverage": "istanbul cover test"
   },
   "dependencies": {
-    "chalk": "^2.3.0"
+    "@nlib/human-readable": "^1.0.1"
   },
   "devDependencies": {
-    "@nlib/lint": "^0.2.0"
+    "@nlib/lint": "^0.2.1"
   }
 }
