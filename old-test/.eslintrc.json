@@ -1,7 +1,0 @@
-{
-  "rules": {
-    "no-empty-function": "off",
-    "consistent-this": "off",
-    "no-invalid-this": "off"
-  }
-}

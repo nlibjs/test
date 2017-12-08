@@ -28,20 +28,20 @@ function add(a, b) {
   return a + b;
 }
 
-test('add', function (test) {
-  test('2 numbers', function (test) {
-    test('add(0, 1) = 1', function () {
+test('add', (test) => {
+  test('2 numbers', (test) => {
+    test('add(0, 1) = 1', () => {
       assert.equal(add(0, 1), 1);
     });
-    test('add(1, 0) = 1', function () {
+    test('add(1, 0) = 1', () => {
       assert.equal(add(1, 0), 1);
     });
   });
-  test('3 numbers', function (test) {
-    test('add(0, 1, 2) = 3', function () {
+  test('3 numbers', (test) => {
+    test('add(0, 1, 2) = 3', () => {
       assert.equal(add(0, 1, 2), 3);
     });
-    test('add(2, 1, 0) = 3', function () {
+    test('add(2, 1, 0) = 3', () => {
       assert.equal(add(2, 1, 0), 3);
     });
   });
@@ -66,8 +66,8 @@ function wait(duration, data) {
   });
 }
 
-test('wait', function (test) {
-  test('50ms', function () {
+test('wait', (test) => {
+  test('50ms', () => {
     const start = new Date();
     return wait(50)
     .then(() => {
@@ -75,7 +75,7 @@ test('wait', function (test) {
       assert(45 < end - start);
     });
   });
-  test('3000ms', function () {
+  test('3000ms', () => {
     const start = new Date();
     return wait(3000)
     .then(() => {
@@ -83,15 +83,14 @@ test('wait', function (test) {
       assert(2700 < end - start);
     });
   });
-  test('3000ms', function () {
+  test('3000ms', () => {
     const start = new Date();
-    this.timeout = 4000;
     return wait(3000)
     .then(() => {
       const end = new Date();
       assert(2700 < end - start);
     });
-  });
+  }, {timeout: 4000});
 });
 ```
 
@@ -99,7 +98,7 @@ test('wait', function (test) {
 
 ## JavaScript API
 
-**test**(*title*: String, *fn*(*child_test*: Function) → ?Promise, *options*: ?Object);
+**test**(*title*: String, *fn*(*child_test*: Function) → undefined, *options*: ?Object);
 
 - *title*: A title.
 - *fn*(*child_test*: Function):
@@ -108,10 +107,6 @@ The return value can be a promise.
 *child_test* is a function which has the same interface as **test**.
 Tests run by *child_test* are reported as sub tests of a parent test made by **test**().
 - *options*: configures its behavior.
-  - *rejectable*: Boolean.
-  When it is false, `test()` returns a promise will be resolved even if it caught an error.
-  This means tests aren't stopped by error.
-  When it is true, `test()` (or `child_test()`) skips the folloing tests which has same parent.
   - *timeout*: Number. Sets timeout in milliseconds.
 
 ## LICENSE

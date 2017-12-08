@@ -19,12 +19,13 @@
   "scripts": {
     "lint": "nlib-lint src test",
     "test": "node test",
-    "test_coverage": "istanbul cover test"
+    "test_coverage": "nyc --reporter=lcov --reporter=text npm test"
   },
   "dependencies": {
     "@nlib/human-readable": "^1.0.1"
   },
   "devDependencies": {
-    "@nlib/lint": "^0.2.1"
+    "@nlib/lint": "^0.2.1",
+    "nyc": "^11.3.0"
   }
 }

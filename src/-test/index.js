@@ -1,38 +1,67 @@
+const assert = require('assert');
 const humanReadable = require('@nlib/human-readable');
-
 module.exports = class Test {
+
+	static get logLevels() {
+		return {
+			debug: 0,
+			info: 1,
+			error: 2,
+			silent: 3,
+		};
+	}
+
+	static get defaultOptions() {
+		return {
+			stdout: process.stdout,
+			stderr: process.stderr,
+			passed: '✅',
+			failed: '❌',
+			error: '🚨',
+			timeout: 1000,
+			bailout: false,
+			logLevel: Test.logLevels.info,
+			onEnd(test) {
+				if (test.isRoot) {
+					process.exit(test.passed ? 0 : 1);
+				}
+			},
+			onInternalError(error) {
+				this.stderr.write(`\n${error.stack || error}\n`);
+				process.exit(1);
+			},
+		};
+	}
 
 	constructor({
 		parent,
-		title = 'test',
+		title = process.mainModule.filename,
 		fn,
 		options,
 	} = {}) {
 		options = Object.assign(
 			{},
-			parent ? parent.options : {
-				stdout: process.stdout,
-				stderr: process.stderr,
-				passed: '✅',
-				failed: '❌',
-				error: '🚨',
-				timeout: 1000,
-				bailout: false,
-				onEnd(test) {
-					if (test.isRoot) {
-						process.exit(test.passed ? 0 : 1);
-					}
-				},
-			},
+			parent ? parent.options : Test.defaultOptions,
 			options
 		);
+		if ((options.logLevel in Test.logLevels)) {
+			options.logLevel = Test.logLevels[options.logLevel];
+		} else if (typeof options.logLevel !== 'number') {
+			throw new Error(`Invalid logLevel: ${options.logLevel} (allowed: ${Test.logLevels.join(',')})`);
+		}
 		Object.assign(this, {
 			parent,
 			title,
 			fn,
 			options,
 			children: [],
-			add: this.add.bind(this),
+			add: Object.assign(
+				this.add.bind(this),
+				{
+					object: this.object.bind(this),
+					lines: this.lines.bind(this),
+				}
+			),
 		});
 		if (this.isRoot) {
 			return this.add;
@@ -127,9 +156,14 @@ module.exports = class Test {
 			errors.push(this.error);
 		}
 		if (0 < failed) {
+			this.passed = false;
 			this.failed = true;
+			if (!this.error) {
+				this.error = new Error(`${failed} test${1 < failed ? 's' : ''}`);
+			}
 		} else {
 			this.passed = true;
+			this.failed = false;
 		}
 		return {
 			total: passed + failed,
@@ -139,9 +173,9 @@ module.exports = class Test {
 		};
 	}
 
-	indent(text) {
-		const indent = '|  '.repeat(this.depth);
-		return text.trim().split(/\r\n|\r|\n/)
+	indent(text, level = this.depth, chars = '|  ') {
+		const indent = chars.repeat(level);
+		return `${text}`.trim().split(/\r\n|\r|\n/)
 		.map((line) => {
 			return `${indent}${line}`;
 		})
@@ -149,28 +183,50 @@ module.exports = class Test {
 	}
 
 	report() {
+		const {logLevels} = Test;
 		const {total, passed} = this.summary;
-		const summary = `${1 < total ? ` [${passed}/${total}]` : ''} (${this.elapsed})`;
-		if (this.failed) {
-			this.stdout.write(`${this.indent(`${this.options.failed} ${this.title}${summary}`)}\n`);
-		} else {
-			this.stderr.write(this.indent(`${this.options.passed} ${this.title}${summary}`));
-			if (this.rejected) {
-				this.stderr.write(` → ${this.error}`);
+		const summary = `${1 < total ? ` [${passed}/${total}]` : ''} (${humanReadable(this.elapsed)}s)`;
+		switch (this.options.logLevel) {
+		case logLevels.debug:
+		case logLevels.info:
+			if (this.passed) {
+				this.stdout.write(`${this.indent(`${this.options.passed} ${this.title}${summary}`)}\n`);
 			}
-			this.stderr.write('\n');
-		}
-		if (this.isRoot) {
-			this.reportErrors();
+		case logLevels.error:
+			if (this.failed) {
+				this.stderr.write(this.indent(`${this.options.failed} ${this.title}${summary}`));
+				this.stderr.write(` → ${this.error}`);
+				this.stderr.write('\n');
+			}
+		default:
+			if (this.isRoot) {
+				this.reportErrors();
+			}
 		}
 	}
 
 	reportErrors() {
 		const {errors} = this.summary;
-		for (const error of errors) {
+		for (let index = 0; index < errors.length; index++) {
+			const error = errors[index];
+			const lines = [error.stack || error];
+			if (error.code === 'ERR_ASSERTION') {
+				lines.push(
+					'# actual:',
+					this.indent(error.actual, 1),
+					'# expected:',
+					this.indent(error.expected, 1)
+				);
+			}
 			const breadcrumbs = error.test.breadcrumbs.join(' > ');
-			this.stderr.write(`\n${this.options.error} ${breadcrumbs}\n${error.stack || error}\n`);
+			this.stderr.write([
+				'',
+				`${this.options.error} #${index + 1} ${breadcrumbs}`,
+				this.indent(lines.join('\n'), 1),
+				'',
+			].join('\n'));
 		}
+		this.stderr.write('\n');
 	}
 
 	add(title, fn, options) {
@@ -185,16 +241,17 @@ module.exports = class Test {
 				this.run();
 			}
 		}
-		return test;
 	}
 
 	execute() {
 		if (this.skip) {
-			return Promise.reject(new Error('bailout: skipped'));
+			const error = new Error('Skipped');
+			error.code = 'EBAILOUT';
+			return Promise.reject(error);
 		}
 		return Promise.resolve()
 		.then(() => {
-			return !this.isRoot && this.fn.call(undefined, this.add);
+			return this.isRoot ? undefined : this.fn.call(undefined, this.add);
 		});
 	}
 
@@ -218,7 +275,7 @@ module.exports = class Test {
 		)
 		.then(() => {
 			const [s, ns] = timer.stop();
-			this.elapsed = `${humanReadable(s + (ns / 1e9))}s`;
+			this.elapsed = s + (ns / 1e9);
 			this.done = true;
 			return this.runChildren();
 		})
@@ -227,15 +284,20 @@ module.exports = class Test {
 			this.summary = this.summarize();
 			this.report();
 			if (this.failed && this.options.bailout) {
-				this.parent.skipChildren();
+				this.bailout();
 			}
-			this.end();
-		});
+			this.options.onEnd(this);
+		})
+		.catch(this.options.onInternalError);
 	}
 
-	skipChildren() {
+	bailout() {
+		this.skip = true;
 		for (const child of this.children) {
 			child.skip = true;
+		}
+		if (!this.isRoot) {
+			this.parent.bailout();
 		}
 	}
 
@@ -257,8 +319,60 @@ module.exports = class Test {
 		});
 	}
 
-	end() {
-		this.options.onEnd(this);
+	object(actual, expected, ancestors = [['object', actual, expected]]) {
+		if (typeof ancestors === 'string') {
+			ancestors = [[ancestors, actual, expected]];
+		}
+		for (const key of Object.keys(expected)) {
+			const expectedValue = expected[key];
+			const actualValue = actual[key];
+			const nextAncestors = [...ancestors, [key, actualValue, expectedValue]];
+			const accessor = nextAncestors
+			.map(([key]) => {
+				return key;
+			})
+			.join('.');
+			if (typeof expectedValue === 'object') {
+				for (const [,, e] of ancestors) {
+					if (e === expectedValue) {
+						throw new Error(`${accessor}: cyclic reference`);
+					}
+				}
+				this.object(actualValue, expectedValue, nextAncestors);
+			} else {
+				this.add(`${accessor} (${actualValue}) === ${expectedValue}`, () => {
+					assert.strictEqual(actualValue, expectedValue);
+				});
+			}
+		}
+	}
+
+	lines(actualLines, expectedLines) {
+		actualLines = `${actualLines}`.split(/\r\n|\r|\n/);
+		for (let index = 0; index < expectedLines.length; index++) {
+			const expected = expectedLines[index];
+			const actual = actualLines[index];
+			this.add(`line ${index + 1}: ${actual}`, () => {
+				try {
+					switch (typeof expected) {
+					case 'function':
+						assert(expected(actual));
+						break;
+					case 'string':
+						assert.equal(actual, expected);
+						break;
+					default:
+						if (typeof expected.test === 'function') {
+							assert(expected.test(actual));
+						}
+					}
+				} catch (error) {
+					error.actual = actual;
+					error.expected = expected;
+					throw error;
+				}
+			});
+		}
 	}
 
 };
