@@ -1,5 +1,10 @@
 const assert = require('assert');
 const humanReadable = require('@nlib/human-readable');
+
+const DEPTH = Symbol('depth');
+const NEXT = Symbol('next');
+const SUMMARY = Symbol('summary');
+
 module.exports = class Test {
 
 	static get logLevels() {
@@ -88,24 +93,22 @@ module.exports = class Test {
 		return this.children[0];
 	}
 
-	get lastChild() {
-		return this.children[this.childCount - 1];
-	}
-
 	get nextChild() {
-		for (const child of this.children) {
+		for (let i = this[NEXT] || 0; i < this.childCount; i++) {
+			const child = this.children[i];
 			if (!child.done) {
 				return child;
 			}
+			this[NEXT] = i + 1;
 		}
 		return null;
 	}
 
 	get depth() {
-		if (this.isRoot) {
-			return 0;
+		if (!(DEPTH in this)) {
+			this[DEPTH] = this.isRoot ? 0 : this.parent.depth + 1;
 		}
-		return this.parent.depth + 1;
+		return this[DEPTH];
 	}
 
 	get timer() {
@@ -117,7 +120,9 @@ module.exports = class Test {
 				startedAt = process.hrtime();
 				return new Promise((resolve, reject) => {
 					timer = setTimeout(() => {
-						reject(new Error(`Timeout of ${timeout}ms exceeded`));
+						const error = new Error(`Timeout of ${timeout}ms exceeded`);
+						error.code = 'ETIMEOUT';
+						reject(error);
 					}, timeout);
 				});
 			},
@@ -135,42 +140,45 @@ module.exports = class Test {
 		return this.parent.breadcrumbs.concat(this.title);
 	}
 
-	summarize() {
-		if (!this.closed) {
-			throw new Error(`Failed to summarize the result. This test "${this.title}" is not closed.`);
-		}
-		let passed = 0;
-		let failed = 0;
-		const errors = [];
-		for (const child of this.children) {
-			const summary = child.summarize();
-			passed += summary.passed;
-			failed += summary.failed;
-			errors.push(...summary.errors);
-		}
-		if (this.resolved) {
-			passed++;
-		}
-		if (this.rejected) {
-			failed++;
-			errors.push(this.error);
-		}
-		if (0 < failed) {
-			this.passed = false;
-			this.failed = true;
-			if (!this.error) {
-				this.error = new Error(`${failed} test${1 < failed ? 's' : ''}`);
+	get summary() {
+		if (!(SUMMARY in this)) {
+			if (!this.closed) {
+				throw new Error(`Failed to summarize the result. This test "${this.title}" is not closed.`);
 			}
-		} else {
-			this.passed = true;
-			this.failed = false;
+			let passed = 0;
+			let failed = 0;
+			const errors = [];
+			for (const child of this.children) {
+				const {summary} = child;
+				passed += summary.passed;
+				failed += summary.failed;
+				errors.push(...summary.errors);
+			}
+			if (this.resolved) {
+				passed++;
+			}
+			if (this.rejected) {
+				failed++;
+				errors.push(this.error);
+			}
+			if (0 < failed) {
+				this.passed = false;
+				this.failed = true;
+				if (!this.error) {
+					this.error = new Error(`${failed} test${1 < failed ? 's' : ''}`);
+				}
+			} else {
+				this.passed = true;
+				this.failed = false;
+			}
+			this[SUMMARY] = {
+				total: passed + failed,
+				passed,
+				failed,
+				errors,
+			};
 		}
-		return {
-			total: passed + failed,
-			passed,
-			failed,
-			errors,
-		};
+		return this[SUMMARY];
 	}
 
 	indent(text, level = this.depth, chars = '|  ') {
@@ -184,23 +192,28 @@ module.exports = class Test {
 
 	report() {
 		const {logLevels} = Test;
-		const {total, passed} = this.summary;
-		const summary = `${1 < total ? ` [${passed}/${total}]` : ''} (${humanReadable(this.elapsed)}s)`;
-		switch (this.options.logLevel) {
-		case logLevels.debug:
-		case logLevels.info:
-			if (this.passed) {
-				this.stdout.write(`${this.indent(`${this.options.passed} ${this.title}${summary}`)}\n`);
-			}
-		case logLevels.error:
+		const {options: {logLevel}, summary: {total, passed}} = this;
+		const [prefix, writer] = this.passed
+		? [this.options.passed, this.stdout]
+		: [this.options.failed, this.stderr];
+		const heading = this.indent([
+			prefix,
+			` ${this.title} `,
+			1 < total ? `[${passed}/${total}] ` : '',
+			`(${humanReadable(this.elapsed)}s)`,
+		].join(''));
+		if (this.isRoot) {
+			writer.write(heading);
 			if (this.failed) {
-				this.stderr.write(this.indent(`${this.options.failed} ${this.title}${summary}`));
-				this.stderr.write(` → ${this.error}`);
-				this.stderr.write('\n');
+				writer.write(` → ${this.error}`);
 			}
-		default:
-			if (this.isRoot) {
-				this.reportErrors();
+			writer.write('\n');
+			this.reportErrors();
+		} else if (logLevel <= logLevels.error) {
+			if (this.failed) {
+				writer.write(`${heading} → ${this.error}\n`);
+			} else if (logLevel <= logLevels.info) {
+				writer.write(`${heading}\n`);
 			}
 		}
 	}
@@ -236,7 +249,10 @@ module.exports = class Test {
 		const test = new Test({parent: this, title, fn, options});
 		this.children.push(test);
 		if (test === this.firstChild) {
-			this.stdout.write(`${this.indent(this.title)}\n`);
+			const {logLevels} = Test;
+			if (this.options.logLevel <= logLevels.info) {
+				this.stdout.write(`${this.indent(this.title)}\n`);
+			}
 			if (this.isRoot) {
 				this.run();
 			}
@@ -281,7 +297,6 @@ module.exports = class Test {
 		})
 		.then(() => {
 			this.closed = true;
-			this.summary = this.summarize();
 			this.report();
 			if (this.failed && this.options.bailout) {
 				this.bailout();
@@ -332,14 +347,21 @@ module.exports = class Test {
 				return key;
 			})
 			.join('.');
-			if (typeof expectedValue === 'object') {
+			switch (typeof expectedValue) {
+			case 'object':
 				for (const [,, e] of ancestors) {
 					if (e === expectedValue) {
 						throw new Error(`${accessor}: cyclic reference`);
 					}
 				}
 				this.object(actualValue, expectedValue, nextAncestors);
-			} else {
+				break;
+			case 'function':
+				this.add(`${accessor} (${actualValue})`, () => {
+					assert(expectedValue(actualValue));
+				});
+				break;
+			default:
 				this.add(`${accessor} (${actualValue}) === ${expectedValue}`, () => {
 					assert.strictEqual(actualValue, expectedValue);
 				});
