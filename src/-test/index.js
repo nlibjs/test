@@ -31,8 +31,8 @@ module.exports = class Test {
 					process.exit(test.passed ? 0 : 1);
 				}
 			},
-			onInternalError(error) {
-				this.stderr.write(`\n${error.stack || error}\n`);
+			onInternalError(error, test) {
+				test.options.stderr.write(`\n${error.stack || error}\n`);
 				process.exit(1);
 			},
 		};
@@ -60,17 +60,22 @@ module.exports = class Test {
 			fn,
 			options,
 			children: [],
-			add: Object.assign(
-				this.add.bind(this),
-				{
-					object: this.object.bind(this),
-					lines: this.lines.bind(this),
-				}
-			),
 		});
-		if (this.isRoot) {
-			return this.add;
-		}
+		return new Proxy(() => {}, Object.assign(
+			Object.getOwnPropertyNames(Reflect)
+			.reduce((reflector, key) => {
+				const fn = Reflect[key];
+				reflector[key] = (target, ...args) => {
+					return fn(this, ...args);
+				};
+				return reflector;
+			}, {}),
+			{
+				apply: (target, thisArg, argumentsList) => {
+					return this.add(...argumentsList);
+				},
+			}
+		));
 	}
 
 	get stdout() {
@@ -267,7 +272,7 @@ module.exports = class Test {
 		}
 		return Promise.resolve()
 		.then(() => {
-			return this.isRoot ? undefined : this.fn.call(undefined, this.add);
+			return this.isRoot ? undefined : this.fn.call(undefined, this);
 		});
 	}
 
@@ -303,7 +308,9 @@ module.exports = class Test {
 			}
 			this.options.onEnd(this);
 		})
-		.catch(this.options.onInternalError);
+		.catch((error) => {
+			this.options.onInternalError(error, this);
+		});
 	}
 
 	bailout() {

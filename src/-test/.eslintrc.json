@@ -1,5 +1,6 @@
 {
   "rules": {
+    "no-empty-function": "off",
     "no-fallthrough": "off"
   }
 }
