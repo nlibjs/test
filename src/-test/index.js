@@ -377,7 +377,21 @@ module.exports = class Test {
 	}
 
 	lines(actualLines, expectedLines) {
-		actualLines = `${actualLines}`.split(/\r\n|\r|\n/);
+		[actualLines, expectedLines] = [actualLines, expectedLines]
+		.map((source) => {
+			const lines = [];
+			if (Buffer.isBuffer(source) || typeof source === 'string') {
+				source = [`${source}`];
+			}
+			for (const item of source) {
+				if (Buffer.isBuffer(item) || typeof item === 'string') {
+					lines.push(...`${item}`.split(/\r\n|\r|\n/));
+				} else {
+					lines.push(item);
+				}
+			}
+			return lines;
+		});
 		for (let index = 0; index < expectedLines.length; index++) {
 			const expected = expectedLines[index];
 			const actual = actualLines[index];
