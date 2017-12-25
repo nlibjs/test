@@ -356,12 +356,16 @@ module.exports = class Test {
 			.join('.');
 			switch (typeof expectedValue) {
 			case 'object':
-				for (const [,, e] of ancestors) {
-					if (e === expectedValue) {
-						throw new Error(`${accessor}: cyclic reference`);
+				if (expectedValue === null) {
+					assert.strictEqual(actualValue, expectedValue);
+				} else {
+					for (const [,, e] of ancestors) {
+						if (e === expectedValue) {
+							throw new Error(`${accessor}: cyclic reference`);
+						}
 					}
+					this.object(actualValue, expectedValue, nextAncestors);
 				}
-				this.object(actualValue, expectedValue, nextAncestors);
 				break;
 			case 'function':
 				this.add(`${accessor} (${actualValue})`, () => {

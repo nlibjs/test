@@ -6,6 +6,7 @@ module.exports = ['Test.prototype.object', ($test) => {
 		{
 			foo: {
 				bar: 'bazbaz',
+				baz: null,
 			},
 		},
 		{
@@ -13,6 +14,7 @@ module.exports = ['Test.prototype.object', ($test) => {
 				bar(bar) {
 					return bar.startsWith('baz');
 				},
+				baz: null,
 			},
 		}
 	);
