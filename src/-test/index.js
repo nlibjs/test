@@ -354,25 +354,18 @@ module.exports = class Test {
 				return key;
 			})
 			.join('.');
-			switch (typeof expectedValue) {
-			case 'object':
-				if (expectedValue === null) {
-					assert.strictEqual(actualValue, expectedValue);
-				} else {
-					for (const [,, e] of ancestors) {
-						if (e === expectedValue) {
-							throw new Error(`${accessor}: cyclic reference`);
-						}
-					}
-					this.object(actualValue, expectedValue, nextAncestors);
-				}
-				break;
-			case 'function':
+			if (typeof expectedValue === 'function') {
 				this.add(`${accessor} (${actualValue})`, () => {
 					assert(expectedValue(actualValue));
 				});
-				break;
-			default:
+			} else if (typeof expectedValue === 'object' && expectedValue !== null) {
+				for (const [,, e] of ancestors) {
+					if (e === expectedValue) {
+						throw new Error(`${accessor}: cyclic reference`);
+					}
+				}
+				this.object(actualValue, expectedValue, nextAncestors);
+			} else {
 				this.add(`${accessor} (${actualValue}) === ${expectedValue}`, () => {
 					assert.strictEqual(actualValue, expectedValue);
 				});
