@@ -1,5 +1,6 @@
 const assert = require('assert');
 const humanReadable = require('@nlib/human-readable');
+const {Timer} = require('../-timer');
 
 const DEPTH = Symbol('depth');
 const NEXT = Symbol('next');
@@ -114,28 +115,6 @@ module.exports = class Test {
 			this[DEPTH] = this.isRoot ? 0 : this.parent.depth + 1;
 		}
 		return this[DEPTH];
-	}
-
-	get timer() {
-		const {options: {timeout}} = this;
-		let timer;
-		let startedAt;
-		return {
-			start() {
-				startedAt = process.hrtime();
-				return new Promise((resolve, reject) => {
-					timer = setTimeout(() => {
-						const error = new Error(`Timeout of ${timeout}ms exceeded`);
-						error.code = 'ETIMEOUT';
-						reject(error);
-					}, timeout);
-				});
-			},
-			stop() {
-				clearTimeout(timer);
-				return process.hrtime(startedAt);
-			},
-		};
 	}
 
 	get breadcrumbs() {
@@ -277,7 +256,7 @@ module.exports = class Test {
 	}
 
 	run() {
-		const {timer} = this;
+		const timer = new Timer(this.options.timeout);
 		return Promise.race([
 			timer.start(),
 			this.execute(),

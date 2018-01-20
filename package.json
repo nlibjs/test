@@ -25,6 +25,6 @@
     "@nlib/human-readable": "^1.0.1"
   },
   "devDependencies": {
-    "@nlib/lint": "^2.2.1"
+    "@nlib/lint": "^2.2.3"
   }
 }
