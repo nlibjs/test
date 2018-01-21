@@ -15,7 +15,6 @@ module.exports = ['wrap thrown value if it is not an instance of Error', ($test)
 					}
 				},
 				onInternalError: reject,
-				logLevel: 'error',
 			},
 		});
 		test('throw test', () => {

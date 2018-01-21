@@ -18,7 +18,8 @@ exports.Timer = class Timer {
 
 	stop() {
 		clearTimeout(this.timer);
-		return process.hrtime(this.startTime);
+		const [s, ns] = process.hrtime(this.startTime);
+		return s + (ns / 1e9);
 	}
 
 }

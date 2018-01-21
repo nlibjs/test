@@ -9,7 +9,6 @@ const bailout = require('./bailout');
 const timeout = require('./timeout');
 const addToClosed = require('./add-to-closed');
 const getSummaryFromUnclosed = require('./get-summary-from-unclosed');
-const logLevel = require('./log-level');
 const wrapValue = require('./wrap-value');
 
 $test('Test', ($test) => {
@@ -23,6 +22,5 @@ $test('Test', ($test) => {
 	$test(...timeout);
 	$test(...addToClosed);
 	$test(...getSummaryFromUnclosed);
-	$test(...logLevel);
 	$test(...wrapValue);
 });
