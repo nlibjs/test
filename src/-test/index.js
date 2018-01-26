@@ -1,78 +1,205 @@
-const assert = require('assert');
-const {TestCore} = require('../-test-core');
+const console = require('console');
+const humanReadable = require('@nlib/human-readable');
+const {Timer} = require('../-timer');
+const {Hooks} = require('../-hooks');
+const {isObject} = require('../is-object');
+const {assignFix} = require('../assign-fix');
 
-exports.Test = class Test extends TestCore {
+function indent(depth) {
+	return '|  '.repeat(depth);
+}
 
-	object(actual, expected, ancestors = [['object', actual, expected]]) {
-		if (typeof ancestors === 'string') {
-			ancestors = [[ancestors, actual, expected]];
-		}
-		for (const key of Object.keys(expected)) {
-			const expectedValue = expected[key];
-			const actualValue = actual[key];
-			const nextAncestors = [...ancestors, [key, actualValue, expectedValue]];
-			const accessor = nextAncestors
-			.map(([key]) => {
-				return key;
-			})
-			.join('.');
-			if (typeof expectedValue === 'function') {
-				this.add(`${accessor} (${actualValue})`, () => {
-					assert(expectedValue(actualValue));
-				});
-			} else if (typeof expectedValue === 'object' && expectedValue !== null) {
-				for (const [,, e] of ancestors) {
-					if (e === expectedValue) {
-						throw new Error(`${accessor}: cyclic reference`);
+exports.Test = class Test extends Function {
+
+	static get defaultOptions() {
+		return {
+			timeout: 1000,
+			bailout: false,
+			hooks: {
+				start() {
+					console.log(new Date().toISOString());
+				},
+				end(test) {
+					const {passed, failed} = test.summarize();
+					console.log(`passed: ${passed}, failed: ${failed}`);
+					if (0 < failed) {
+						process.exit(1);
 					}
-				}
-				this.object(actualValue, expectedValue, nextAncestors);
-			} else {
-				this.add(`${accessor} (${actualValue}) === ${expectedValue}`, () => {
-					assert.strictEqual(actualValue, expectedValue);
-				});
+				},
+			},
+			globalHooks: {
+				firstChild(test) {
+					console.log(`${indent(test.depth)}${test.title}`);
+				},
+				afterEach(test) {
+					const {passed, failed} = test.summarize();
+					const total = passed + failed;
+					const prefix = 1 < total ? `[${passed}/${total}]` : `${0 < test.failed ? '❌' : '✅'}`;
+					console.log(`${indent(test.depth)}${prefix} ${test.title} (${humanReadable(test.elapsed)})`);
+				},
+				error(test, error) {
+					console.error(error);
+					process.exit(1);
+				},
+			},
+		};
+	}
+
+	constructor({
+		parent,
+		title = process.mainModule.filename,
+		options,
+	} = {}) {
+		super();
+		options = Object.assign({}, parent ? parent.options : Test.defaultOptions, options);
+		const hooks = new Hooks(parent ? parent.hooks : []);
+		if (isObject(options.hooks)) {
+			hooks.add(options.hooks);
+		}
+		if (isObject(options.globalHooks)) {
+			hooks.add(options.globalHooks, true);
+		}
+		const properties = {
+			Test,
+			parent,
+			depth: parent ? parent.depth + 1 : 0,
+			breadcrumbs: parent ? parent.breadcrumbs.concat(title) : [],
+			title,
+			hooks,
+			options,
+			fn: [],
+			children: [],
+		};
+		assignFix(this, properties);
+		const add = (...args) => this.add(...args);
+		return assignFix(Object.setPrototypeOf(add, Object.getPrototypeOf(this)), properties);
+	}
+
+	get root() {
+		return this.parent ? this.parent.root : this;
+	}
+
+	get isRoot() {
+		return this === this.root;
+	}
+
+	* ancestors() {
+		yield this;
+		if (this.parent) {
+			yield* this.parent.ancestors();
+		}
+	}
+
+	* queue() {
+		for (let i = 0; i < this.children.length; i++) {
+			const child = this.children[i];
+			if (!child.done) {
+				yield child;
 			}
 		}
 	}
 
-	lines(actualLines, expectedLines) {
-		[actualLines, expectedLines] = [actualLines, expectedLines]
-		.map((source) => {
-			const lines = [];
-			if (Buffer.isBuffer(source) || typeof source === 'string') {
-				source = [`${source}`];
+	callHook(key, ...args) {
+		return this.hooks.call(key, this, ...args);
+	}
+
+	add(title, fn, options) {
+		if (this.done) {
+			throw new Error(`Failed to add a child test because the parent test "${this.title}" is done.`);
+		}
+		const test = (Array.isArray(title) ? title : [title])
+		.reduce((parent, title) => {
+			const found = parent.children.find((test) => test.title === title);
+			if (found) {
+				return found;
+			} else {
+				const test = new Test({parent, title, options});
+				parent.children.push(test);
+				return test;
 			}
-			for (const item of source) {
-				if (Buffer.isBuffer(item) || typeof item === 'string') {
-					lines.push(...`${item}`.split(/\r\n|\r|\n/));
+		}, this);
+		test.fn.push(fn);
+		if (this.isRoot) {
+			this.run();
+		}
+	}
+
+	run() {
+		assignFix(this, {run: null});
+		const timer = new Timer(this.options.timeout);
+		return Promise.resolve()
+		.then(() => this.isRoot && this.callHook('start'))
+		.then(() => this.callHook('beforeEach'))
+		.then(() => Promise.race([timer.start(), this.execute()]))
+		.then(
+			(value) => assignFix(this, {resolved: true, rejected: false, value}),
+			(error) => assignFix(this, {resolved: false, rejected: true, error: Object.assign(
+				isObject(error) ? error : new Error(`The test "${this.title}" failed with ${isObject(error) ? (error.stack || error) : error}.`),
+				{test: this}
+			)})
+		)
+		.then(() => assignFix(this, {done: true, elapsed: timer.stop()}).runChildren())
+		.then(() => this.summarize().callHook('afterEach'))
+		.then(() => 0 < this.failed && this.options.bailout && this.bailout())
+		.then(() => this.isRoot && this.callHook('end'))
+		.catch((error) => this.callHook('error', error));
+	}
+
+	execute() {
+		if (this.skip) {
+			return Promise.reject(Object.assign(new Error('Skipped'), {code: 'EBAILOUT'}));
+		}
+		const add = (title, fn, options) => this.add(title, fn, options);
+		return Promise.resolve().then(() => this.isRoot ? undefined : Promise.all(this.fn.map((fn) => fn(add))));
+	}
+
+	runChildren() {
+		return new Promise((resolve, reject) => {
+			let count = 0;
+			const queue = this.queue();
+			const runNext = () => {
+				const {done, value: nextChild} = queue.next();
+				if (done) {
+					resolve();
 				} else {
-					lines.push(item);
+					Promise.resolve(count++ === 0 && this.callHook('firstChild'))
+					.then(() => nextChild.run())
+					.then(() => setImmediate(runNext))
+					.catch(reject);
 				}
-			}
-			return lines;
+			};
+			runNext();
 		});
-		for (let index = 0; index < expectedLines.length; index++) {
-			const expected = expectedLines[index];
-			const actual = actualLines[index];
-			this.add(`line ${index + 1}: ${actual}`, () => {
-				try {
-					switch (typeof expected) {
-					case 'function':
-						assert(expected(actual));
-						break;
-					case 'string':
-						assert.equal(actual, expected);
-						break;
-					default:
-						if (typeof expected.test === 'function') {
-							assert(expected.test(actual));
-						}
-					}
-				} catch (error) {
-					throw Object.assign(error, {actual, expected});
-				}
+	}
+
+	bailout() {
+		assignFix(this, {skip: true});
+		for (const child of this.children) {
+			assignFix(child, {skip: true});
+		}
+		if (!this.isRoot) {
+			this.parent.bailout();
+		}
+	}
+
+	summarize() {
+		if (!this.done) {
+			throw new Error(`Failed to summarize the result because the test ${this.title} is not done.`);
+		}
+		if (!this.total) {
+			let [passed, failed] = this.resolved ? [1, 0] : [0, 1];
+			for (const child of this.children) {
+				child.summarize();
+				passed += child.passed;
+				failed += child.failed;
+			}
+			assignFix(this, {
+				passed,
+				failed,
+				total: passed + failed,
 			});
 		}
+		return this;
 	}
 
 };
