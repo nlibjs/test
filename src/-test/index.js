@@ -1,418 +1,188 @@
-const assert = require('assert');
-const humanReadable = require('@nlib/human-readable');
+const {Timer} = require('../-timer');
+const {Hooks} = require('../-hooks');
+const {isObject} = require('../is-object');
+const {assignFix} = require('../assign-fix');
+const {runOver} = require('../run-over');
+const {defaultOptions} = require('../default-options');
 
-const DEPTH = Symbol('depth');
-const NEXT = Symbol('next');
-const SUMMARY = Symbol('summary');
-
-module.exports = class Test {
-
-	static get logLevels() {
-		return {
-			debug: 0,
-			info: 1,
-			error: 2,
-			silent: 3,
-		};
-	}
-
-	static get defaultOptions() {
-		return {
-			stdout: process.stdout,
-			stderr: process.stderr,
-			passed: '✅',
-			failed: '❌',
-			error: '🚨',
-			timeout: 1000,
-			bailout: false,
-			logLevel: Test.logLevels.info,
-			onEnd(test) {
-				if (test.isRoot) {
-					process.exit(test.passed ? 0 : 1);
-				}
-			},
-			onInternalError(error, test) {
-				test.options.stderr.write(`\n${error.stack || error}\n`);
-				process.exit(1);
-			},
-		};
-	}
+exports.Test = class Test extends Function {
 
 	constructor({
 		parent,
 		title = process.mainModule.filename,
-		fn,
 		options,
 	} = {}) {
-		options = Object.assign(
-			{},
-			parent ? parent.options : Test.defaultOptions,
-			options
-		);
-		if ((options.logLevel in Test.logLevels)) {
-			options.logLevel = Test.logLevels[options.logLevel];
-		} else if (typeof options.logLevel !== 'number') {
-			throw new Error(`Invalid logLevel: ${options.logLevel} (allowed: ${Test.logLevels.join(',')})`);
+		options = Object.assign({}, parent ? parent.options : defaultOptions(), options);
+		const hooks = new Hooks(parent ? parent.hooks : []);
+		if (isObject(options.hooks)) {
+			hooks.add(options.hooks);
 		}
-		Object.assign(this, {
+		if (isObject(options.globalHooks)) {
+			hooks.add(options.globalHooks, true);
+		}
+		const properties = {
+			Test,
 			parent,
+			depth: parent ? parent.depth + 1 : 0,
+			breadcrumbs: parent ? parent.breadcrumbs.concat(title) : ['root'],
 			title,
-			fn,
+			hooks,
 			options,
+			fn: [],
 			children: [],
-		});
-		return new Proxy(() => {}, Object.assign(
-			Object.getOwnPropertyNames(Reflect)
-			.reduce((reflector, key) => {
-				const fn = Reflect[key];
-				reflector[key] = (target, ...args) => {
-					return fn(this, ...args);
-				};
-				return reflector;
-			}, {}),
-			{
-				apply: (target, thisArg, argumentsList) => {
-					return this.add(...argumentsList);
-				},
-			}
-		));
+		};
+		const test = Object.assign(
+			Object.setPrototypeOf(
+				(...args) => test.add(...args),
+				Object.getPrototypeOf(super())
+			),
+			properties
+		);
+		return test;
 	}
 
-	get stdout() {
-		return this.options.stdout;
-	}
-
-	get stderr() {
-		return this.options.stderr;
+	get root() {
+		return this.parent ? this.parent.root : this;
 	}
 
 	get isRoot() {
-		return !this.parent;
+		return this === this.root;
 	}
 
-	get childCount() {
-		return this.children.length;
-	}
-
-	get firstChild() {
-		return this.children[0];
-	}
-
-	get nextChild() {
-		for (let i = this[NEXT] || 0; i < this.childCount; i++) {
+	* queue() {
+		for (let i = 0; i < this.children.length; i++) {
 			const child = this.children[i];
-			if (!child.done) {
-				return child;
-			}
-			this[NEXT] = i + 1;
-		}
-		return null;
-	}
-
-	get depth() {
-		if (!(DEPTH in this)) {
-			this[DEPTH] = this.isRoot ? 0 : this.parent.depth + 1;
-		}
-		return this[DEPTH];
-	}
-
-	get timer() {
-		const {options: {timeout}} = this;
-		let timer;
-		let startedAt;
-		return {
-			start() {
-				startedAt = process.hrtime();
-				return new Promise((resolve, reject) => {
-					timer = setTimeout(() => {
-						const error = new Error(`Timeout of ${timeout}ms exceeded`);
-						error.code = 'ETIMEOUT';
-						reject(error);
-					}, timeout);
-				});
-			},
-			stop() {
-				clearTimeout(timer);
-				return process.hrtime(startedAt);
-			},
-		};
-	}
-
-	get breadcrumbs() {
-		if (this.isRoot) {
-			return [];
-		}
-		return this.parent.breadcrumbs.concat(this.title);
-	}
-
-	get summary() {
-		if (!(SUMMARY in this)) {
-			if (!this.closed) {
-				throw new Error(`Failed to summarize the result. This test "${this.title}" is not closed.`);
-			}
-			let passed = 0;
-			let failed = 0;
-			const errors = [];
-			for (const child of this.children) {
-				const {summary} = child;
-				passed += summary.passed;
-				failed += summary.failed;
-				errors.push(...summary.errors);
-			}
-			if (this.resolved) {
-				passed++;
-			}
-			if (this.rejected) {
-				failed++;
-				errors.push(this.error);
-			}
-			if (0 < failed) {
-				this.passed = false;
-				this.failed = true;
-				if (!this.error) {
-					this.error = new Error(`${failed} test${1 < failed ? 's' : ''}`);
-				}
-			} else {
-				this.passed = true;
-				this.failed = false;
-			}
-			this[SUMMARY] = {
-				total: passed + failed,
-				passed,
-				failed,
-				errors,
-			};
-		}
-		return this[SUMMARY];
-	}
-
-	indent(text, level = this.depth, chars = '|  ') {
-		const indent = chars.repeat(level);
-		return `${text}`.trim().split(/\r\n|\r|\n/)
-		.map((line) => {
-			return `${indent}${line}`;
-		})
-		.join('\n');
-	}
-
-	report() {
-		const {logLevels} = Test;
-		const {options: {logLevel}, summary: {total, passed}} = this;
-		const [prefix, writer] = this.passed
-		? [this.options.passed, this.stdout]
-		: [this.options.failed, this.stderr];
-		const heading = this.indent([
-			prefix,
-			` ${this.title} `,
-			1 < total ? `[${passed}/${total}] ` : '',
-			`(${humanReadable(this.elapsed)}s)`,
-		].join(''));
-		if (this.isRoot) {
-			writer.write(heading);
-			if (this.failed) {
-				writer.write(` → ${this.error}`);
-			}
-			writer.write('\n');
-			this.reportErrors();
-		} else if (logLevel <= logLevels.error) {
-			if (this.failed) {
-				writer.write(`${heading} → ${this.error}\n`);
-			} else if (logLevel <= logLevels.info) {
-				writer.write(`${heading}\n`);
+			if (!child.closed) {
+				yield child;
 			}
 		}
 	}
 
-	reportErrors() {
-		const {errors} = this.summary;
-		for (let index = 0; index < errors.length; index++) {
-			const error = errors[index];
-			const lines = [error.stack || error];
-			if (error.code === 'ERR_ASSERTION') {
-				lines.push(
-					'# actual:',
-					this.indent(error.actual, 1),
-					'# expected:',
-					this.indent(error.expected, 1)
-				);
-			}
-			const breadcrumbs = error.test.breadcrumbs.join(' > ');
-			this.stderr.write([
-				'',
-				`${this.options.error} #${index + 1} ${breadcrumbs}`,
-				this.indent(lines.join('\n'), 1),
-				'',
-			].join('\n'));
-		}
-		this.stderr.write('\n');
+	callHook(key, ...args) {
+		return this.hooks.call(key, this, ...args);
 	}
 
 	add(title, fn, options) {
 		if (this.closed) {
-			throw new Error(`Failed to add a child test. This test "${this.title}" is closed.`);
+			throw Object.assign(
+				new Error(`Failed to add a child test because the parent test "${this.title}" is closed.`),
+				{code: 'ECLOSED'}
+			);
 		}
-		const test = new Test({parent: this, title, fn, options});
-		this.children.push(test);
-		if (test === this.firstChild) {
-			const {logLevels} = Test;
-			if (this.options.logLevel <= logLevels.info) {
-				this.stdout.write(`${this.indent(this.title)}\n`);
+		const test = (Array.isArray(title) ? title : [title])
+		.reduce((parent, title) => {
+			const found = parent.children.find((test) => test.title === title);
+			if (found) {
+				return found;
+			} else {
+				const test = new Test({parent, title, options});
+				parent.children.push(test);
+				return test;
 			}
-			if (this.isRoot) {
-				this.run();
-			}
+		}, this);
+		test.fn.push(fn);
+		if (this.isRoot && this.options.autoRun) {
+			this.run();
 		}
+	}
+
+	run() {
+		assignFix(this, {run: null});
+		const timer = new Timer(this.options.timeout);
+		return Promise.resolve()
+		.then(() => this.isRoot && this.callHook('start'))
+		.then(() => this.callHook('beforeEach'))
+		.then(() => Promise.race([timer.start(), this.execute()]))
+		.then(
+			(value) => assignFix(this, {resolved: true, rejected: false, value}),
+			(error) => assignFix(this, {resolved: false, rejected: true, error: Object.assign(
+				isObject(error)
+				? error
+				: Object.assign(
+					new Error(`The test "${this.title}" failed with ${error}.`),
+					{value: error}
+				),
+				{test: this}
+			)})
+		)
+		.then(() => assignFix(this, {closed: true, elapsed: timer.stop()}).runChildren())
+		.then(() => this.summarize().callHook('afterEach'))
+		.then(() => 0 < this.failed && this.options.bailout && this.bailout())
+		.then(() => this.isRoot && this.callHook('end'))
+		.catch((error) => this.callHook('error', error));
 	}
 
 	execute() {
 		if (this.skip) {
-			const error = new Error('Skipped');
-			error.code = 'EBAILOUT';
-			return Promise.reject(error);
+			return Promise.reject(Object.assign(new Error('Skipped'), {code: 'ESKIPPED'}));
 		}
-		return Promise.resolve()
-		.then(() => {
-			return this.isRoot ? undefined : this.fn.call(undefined, this);
-		});
-	}
-
-	run() {
-		const {timer} = this;
-		return Promise.race([
-			timer.start(),
-			this.execute(),
-		])
-		.then(
-			(value) => {
-				this.resolved = true;
-				this.value = value;
-			},
-			(error) => {
-				this.rejected = true;
-				error = error instanceof Error ? error : new Error(`The test "${this.title}" failed with ${error}.`);
-				error.test = this;
-				this.error = error;
-			}
-		)
-		.then(() => {
-			const [s, ns] = timer.stop();
-			this.elapsed = s + (ns / 1e9);
-			this.done = true;
-			return this.runChildren();
-		})
-		.then(() => {
-			this.closed = true;
-			this.report();
-			if (this.failed && this.options.bailout) {
-				this.bailout();
-			}
-			this.options.onEnd(this);
-		})
-		.catch((error) => {
-			this.options.onInternalError(error, this);
-		});
-	}
-
-	bailout() {
-		this.skip = true;
-		for (const child of this.children) {
-			child.skip = true;
-		}
-		if (!this.isRoot) {
-			this.parent.bailout();
-		}
+		return Promise.resolve().then(() => this.isRoot ? undefined : Promise.all(this.fn.map((fn) => fn(this))));
 	}
 
 	runChildren() {
 		return new Promise((resolve, reject) => {
+			let count = 0;
+			const queue = this.queue();
 			const runNext = () => {
-				const {nextChild} = this;
-				if (nextChild) {
-					nextChild.run()
-					.then(() => {
-						setImmediate(runNext);
-					})
-					.catch(reject);
-				} else {
+				const {done, value: nextChild} = queue.next();
+				if (done) {
 					resolve();
+				} else {
+					Promise.resolve(count++ === 0 && this.callHook('firstChild'))
+					.then(() => nextChild.run())
+					.then(() => setImmediate(runNext))
+					.catch(reject);
 				}
 			};
 			runNext();
 		});
 	}
 
-	object(actual, expected, ancestors = [['object', actual, expected]]) {
-		if (typeof ancestors === 'string') {
-			ancestors = [[ancestors, actual, expected]];
+	bailout() {
+		assignFix(this, {skip: true});
+		for (const child of this.children) {
+			assignFix(child, {skip: true});
 		}
-		for (const key of Object.keys(expected)) {
-			const expectedValue = expected[key];
-			const actualValue = actual[key];
-			const nextAncestors = [...ancestors, [key, actualValue, expectedValue]];
-			const accessor = nextAncestors
-			.map(([key]) => {
-				return key;
-			})
-			.join('.');
-			if (typeof expectedValue === 'function') {
-				this.add(`${accessor} (${actualValue})`, () => {
-					assert(expectedValue(actualValue));
-				});
-			} else if (typeof expectedValue === 'object' && expectedValue !== null) {
-				for (const [,, e] of ancestors) {
-					if (e === expectedValue) {
-						throw new Error(`${accessor}: cyclic reference`);
-					}
-				}
-				this.object(actualValue, expectedValue, nextAncestors);
-			} else {
-				this.add(`${accessor} (${actualValue}) === ${expectedValue}`, () => {
-					assert.strictEqual(actualValue, expectedValue);
-				});
-			}
+		if (!this.isRoot) {
+			this.parent.bailout();
 		}
 	}
 
-	lines(actualLines, expectedLines) {
-		[actualLines, expectedLines] = [actualLines, expectedLines]
-		.map((source) => {
-			const lines = [];
-			if (Buffer.isBuffer(source) || typeof source === 'string') {
-				source = [`${source}`];
+	summarize() {
+		if (!this.closed) {
+			throw Object.assign(
+				new Error(`Failed to summarize the result because the test ${this.title} is not closed.`),
+				{code: 'EUNCLOSED'}
+			);
+		}
+		if (!this.total) {
+			const errors = [];
+			let passed = 0;
+			let failed = 0;
+			if (this.resolved) {
+				passed += 1;
+			} else {
+				failed += 1;
+				errors.push(this.error);
 			}
-			for (const item of source) {
-				if (Buffer.isBuffer(item) || typeof item === 'string') {
-					lines.push(...`${item}`.split(/\r\n|\r|\n/));
-				} else {
-					lines.push(item);
-				}
+			for (const child of this.children) {
+				child.summarize();
+				errors.push(...child.errors);
+				passed += child.passed;
+				failed += child.failed;
 			}
-			return lines;
-		});
-		for (let index = 0; index < expectedLines.length; index++) {
-			const expected = expectedLines[index];
-			const actual = actualLines[index];
-			this.add(`line ${index + 1}: ${actual}`, () => {
-				try {
-					switch (typeof expected) {
-					case 'function':
-						assert(expected(actual));
-						break;
-					case 'string':
-						assert.equal(actual, expected);
-						break;
-					default:
-						if (typeof expected.test === 'function') {
-							assert(expected.test(actual));
-						}
-					}
-				} catch (error) {
-					error.actual = actual;
-					error.expected = expected;
-					throw error;
-				}
+			assignFix(this, {
+				errors,
+				passed,
+				failed,
+				total: passed + failed,
 			});
 		}
+		return this;
+	}
+
+	runOver(actual, expected) {
+		runOver(this, actual, expected);
 	}
 
 };
