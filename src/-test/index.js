@@ -2,6 +2,7 @@ const {Timer} = require('../-timer');
 const {Hooks} = require('../-hooks');
 const {isObject} = require('../is-object');
 const {assignFix} = require('../assign-fix');
+const {runOver} = require('../run-over');
 const {defaultOptions} = require('../default-options');
 
 exports.Test = class Test extends Function {
@@ -178,6 +179,10 @@ exports.Test = class Test extends Function {
 			});
 		}
 		return this;
+	}
+
+	runOver(actual, expected) {
+		runOver(this, actual, expected);
 	}
 
 };

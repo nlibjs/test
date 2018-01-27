@@ -356,6 +356,94 @@ Promise.resolve()
 		}
 	});
 })
+.then(() => {
+	header('Runover');
+	const options = generateOptions();
+	const test = new Test({title: 'root', options});
+	test.runOver(
+		{
+			a: 123,
+			b: 'foo',
+			c: [4, 5],
+			d: [6, 7],
+			e: 'bar',
+			f: ' foo \n bar ',
+			g: 'baz',
+			h: 1,
+		},
+		{
+			a: 123,
+			b: 'foo',
+			c: [4, 5],
+			d: {length: 2, 0: 6, 1: 7},
+			e: (value) => value.startsWith('b'),
+			f: {length: 2, 0: ' foo ', 1: (value) => value === ' bar '},
+			g: /^ba/,
+			h: '1',
+		}
+	);
+	return test.run()
+	.then(() => {
+		const actualTests = options.calledHooks.map(([key, test]) => `${key}:${test.breadcrumbs.join('.')}`);
+		const expectedTests = [
+			'start:root',
+			'beforeEach:root',
+			'firstChild:root',
+			'beforeEach:root.a: 123',
+			'afterEach:root.a: 123',
+			'beforeEach:root.b: "foo"',
+			'afterEach:root.b: "foo"',
+			'beforeEach:root.c',
+			'firstChild:root.c',
+			'beforeEach:root.c.0: 4',
+			'afterEach:root.c.0: 4',
+			'beforeEach:root.c.1: 5',
+			'afterEach:root.c.1: 5',
+			'afterEach:root.c',
+			'beforeEach:root.d',
+			'firstChild:root.d',
+			'beforeEach:root.d.0: 6',
+			'afterEach:root.d.0: 6',
+			'beforeEach:root.d.1: 7',
+			'afterEach:root.d.1: 7',
+			'beforeEach:root.d.length: 2',
+			'afterEach:root.d.length: 2',
+			'afterEach:root.d',
+			'beforeEach:root.e: "bar"',
+			'afterEach:root.e: "bar"',
+			'beforeEach:root.f',
+			'firstChild:root.f',
+			'beforeEach:root.f.0: " foo "',
+			'afterEach:root.f.0: " foo "',
+			'beforeEach:root.f.1: " bar "',
+			'afterEach:root.f.1: " bar "',
+			'beforeEach:root.f.length: 2',
+			'afterEach:root.f.length: 2',
+			'afterEach:root.f',
+			'beforeEach:root.g: "baz"',
+			'afterEach:root.g: "baz"',
+			'beforeEach:root.h: 1',
+			'afterEach:root.h: 1',
+			'afterEach:root',
+			'end:root',
+		];
+		const length = Math.max(actualTests.length, expectedTests.length);
+		for (let i = 0; i < length; i++) {
+			const actual = actualTests[i];
+			const expected = expectedTests[i];
+			console.log(`#${i} ${actual} === ${expected}`);
+			assert.equal(actual, expected);
+		}
+		testSummary(test, 16, 1, [
+			(actualError) => {
+				assert.strictEqual(actualError.actual, 1);
+				assert.strictEqual(actualError.expected, '1');
+				assert.strictEqual(actualError.operator, '===');
+				return true;
+			},
+		]);
+	});
+})
 .catch((error) => {
 	console.error(error);
 	process.exit(1);
