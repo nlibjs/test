@@ -26,7 +26,11 @@ exports.Hooks = class Hooks extends Map {
 	}
 
 	call(key, ...args) {
-		return [...this.get(key)].reduce((promise, fn) => promise.then(() => fn(...args)), Promise.resolve());
+		return [...this.get(key)]
+		.reduce(
+			(promise, fn) => promise.then(() => fn(...args)),
+			key === 'all' ? Promise.resolve() : this.call('all', key, ...args)
+		);
 	}
 
 };

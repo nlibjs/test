@@ -1,49 +1,10 @@
-const console = require('console');
-const humanReadable = require('@nlib/human-readable');
 const {Timer} = require('../-timer');
 const {Hooks} = require('../-hooks');
 const {isObject} = require('../is-object');
 const {assignFix} = require('../assign-fix');
-
-function indent(depth) {
-	return '|  '.repeat(depth);
-}
+const {defaultOptions} = require('../default-options');
 
 exports.Test = class Test extends Function {
-
-	static get defaultOptions() {
-		return {
-			timeout: 1000,
-			bailout: false,
-			hooks: {
-				start() {
-					console.log(new Date().toISOString());
-				},
-				end(test) {
-					const {passed, failed} = test.summarize();
-					console.log(`passed: ${passed}, failed: ${failed}`);
-					if (0 < failed) {
-						process.exit(1);
-					}
-				},
-			},
-			globalHooks: {
-				firstChild(test) {
-					console.log(`${indent(test.depth)}${test.title}`);
-				},
-				afterEach(test) {
-					const {passed, failed} = test.summarize();
-					const total = passed + failed;
-					const prefix = 1 < total ? `[${passed}/${total}]` : `${0 < test.failed ? '❌' : '✅'}`;
-					console.log(`${indent(test.depth)}${prefix} ${test.title} (${humanReadable(test.elapsed)})`);
-				},
-				error(test, error) {
-					console.error(error);
-					process.exit(1);
-				},
-			},
-		};
-	}
 
 	constructor({
 		parent,
@@ -51,7 +12,7 @@ exports.Test = class Test extends Function {
 		options,
 	} = {}) {
 		super();
-		options = Object.assign({}, parent ? parent.options : Test.defaultOptions, options);
+		options = Object.assign({}, parent ? parent.options : defaultOptions, options);
 		const hooks = new Hooks(parent ? parent.hooks : []);
 		if (isObject(options.hooks)) {
 			hooks.add(options.hooks);
@@ -63,7 +24,7 @@ exports.Test = class Test extends Function {
 			Test,
 			parent,
 			depth: parent ? parent.depth + 1 : 0,
-			breadcrumbs: parent ? parent.breadcrumbs.concat(title) : [],
+			breadcrumbs: parent ? parent.breadcrumbs.concat(title) : ['root'],
 			title,
 			hooks,
 			options,
@@ -81,13 +42,6 @@ exports.Test = class Test extends Function {
 
 	get isRoot() {
 		return this === this.root;
-	}
-
-	* ancestors() {
-		yield this;
-		if (this.parent) {
-			yield* this.parent.ancestors();
-		}
 	}
 
 	* queue() {
@@ -119,7 +73,7 @@ exports.Test = class Test extends Function {
 			}
 		}, this);
 		test.fn.push(fn);
-		if (this.isRoot) {
+		if (this.isRoot && this.options.autoRun) {
 			this.run();
 		}
 	}
@@ -147,10 +101,9 @@ exports.Test = class Test extends Function {
 
 	execute() {
 		if (this.skip) {
-			return Promise.reject(Object.assign(new Error('Skipped'), {code: 'EBAILOUT'}));
+			return Promise.reject(Object.assign(new Error('Skipped'), {code: 'ESKIPPED'}));
 		}
-		const add = (title, fn, options) => this.add(title, fn, options);
-		return Promise.resolve().then(() => this.isRoot ? undefined : Promise.all(this.fn.map((fn) => fn(add))));
+		return Promise.resolve().then(() => this.isRoot ? undefined : Promise.all(this.fn.map((fn) => fn(this))));
 	}
 
 	runChildren() {
@@ -187,13 +140,23 @@ exports.Test = class Test extends Function {
 			throw new Error(`Failed to summarize the result because the test ${this.title} is not done.`);
 		}
 		if (!this.total) {
-			let [passed, failed] = this.resolved ? [1, 0] : [0, 1];
+			const errors = [];
+			let passed = 0;
+			let failed = 0;
+			if (this.resolved) {
+				passed += 1;
+			} else {
+				failed += 1;
+				errors.push(this.error);
+			}
 			for (const child of this.children) {
 				child.summarize();
+				errors.push(...child.errors);
 				passed += child.passed;
 				failed += child.failed;
 			}
 			assignFix(this, {
+				errors,
 				passed,
 				failed,
 				total: passed + failed,
