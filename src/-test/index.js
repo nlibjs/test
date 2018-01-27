@@ -11,7 +11,7 @@ exports.Test = class Test extends Function {
 		title = process.mainModule.filename,
 		options,
 	} = {}) {
-		options = Object.assign({}, parent ? parent.options : defaultOptions, options);
+		options = Object.assign({}, parent ? parent.options : defaultOptions(), options);
 		const hooks = new Hooks(parent ? parent.hooks : []);
 		if (isObject(options.hooks)) {
 			hooks.add(options.hooks);

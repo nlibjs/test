@@ -1,21 +1,9 @@
-// require('./return-undefined');
-// require('./lines');
-// require('./object');
-// require('./single');
-// require('./nested');
-// require('./failed');
-// require('./bailout');
-// require('./timeout');
-// require('./add-to-closed');
-// require('./get-summary-from-unclosed');
-// require('./wrap-value');
-
 const console = require('console');
 const assert = require('assert');
 const {Test} = require('..');
+const {defaultOptions} = require('../src/default-options');
 
 Promise.resolve()
-
 .then(() => {
 	header('Run a test');
 	const options = generateOptions();
@@ -31,7 +19,6 @@ Promise.resolve()
 		testSummary(test, 1, 0);
 	});
 })
-
 .then(() => {
 	header('Run tests');
 	const options = generateOptions();
@@ -71,7 +58,6 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
 .then(() => {
 	header('Add tests by array');
 	const options = generateOptions();
@@ -108,7 +94,6 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
 .then(() => {
 	header('Run tests and report errors');
 	const options = generateOptions();
@@ -164,7 +149,6 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
 .then(() => {
 	header('Run tests and report timeout errors');
 	const options = generateOptions();
@@ -206,7 +190,6 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
 .then(() => {
 	header('Run tests and report timeout and skipped errors');
 	const options = generateOptions();
@@ -246,7 +229,6 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
 .then(() => {
 	header('Throw an error on summarizing an unclosed test');
 	const options = generateOptions();
@@ -260,7 +242,6 @@ Promise.resolve()
 	assert.equal(caughtError.code, 'EUNCLOSED');
 	footer();
 })
-
 .then(() => {
 	header('Throw an error on adding a test to a closed test');
 	const options = generateOptions();
@@ -277,7 +258,6 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
 .then(() => {
 	header('AutoRun');
 	return new Promise((resolve, reject) => {
@@ -293,7 +273,89 @@ Promise.resolve()
 	})
 	.then(footer);
 })
-
+.then(() => {
+	header('defaultOptions');
+	const $console = {
+		history: [],
+		log(...args) {
+			args.unshift('log');
+			$console.history.push(args);
+		},
+		error(...args) {
+			args.unshift('error');
+			$console.history.push(args);
+		},
+		exit(...args) {
+			args.unshift('exit');
+			$console.history.push(args);
+		},
+	};
+	const test = new Test({
+		title: 'root',
+		options: Object.assign(defaultOptions($console, $console), {
+			autoRun: false,
+		}),
+	});
+	test('test1', (test) => {
+		test('test11', () => wait(100), {timeout: 50});
+		test('test12', () => wait());
+		return wait();
+	});
+	test('test2', (test) => {
+		test('test21', () => {});
+		return wait(100);
+	}, {timeout: 50});
+	return test.run()
+	.then(() => {
+		const expectedHistory = [
+			['log', /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/],
+			['log', /^root$/],
+			['log', /^\| {2}test1$/],
+			['log', /^\| {2}\| {2}❌ test11/],
+			['log', /^\| {2}\| {2}✅ test12/],
+			['log', /^\| {2}\[2\/3\] test1/],
+			['log', /^\| {2}test2$/],
+			['log', /^\| {2}\| {2}✅ test21/],
+			['log', /^\| {2}\[1\/2\] test2/],
+			['log', /^\[4\/6\] root/],
+			['log', /^passed: 4, failed: 2/],
+			['error', /^#1 root/],
+			['error', /^--------/],
+			['error', /^Error: Timeout of 50ms exceeded/],
+			['error', /^--------/],
+			['error', /^#2 root/],
+			['error', /^--------/],
+			['error', /^Error: Timeout of 50ms exceeded/],
+			['error', /^--------/],
+			['exit', 1],
+		];
+		const length = Math.max($console.history.length, expectedHistory.length);
+		for (let i = 0; i < length; i++) {
+			const actualArgs = $console.history[i];
+			const expectedArgs = expectedHistory[i];
+			const argsLength = Math.max(actualArgs.length, expectedArgs.length);
+			for (let j = 0; j < argsLength; j++) {
+				const actualArg = actualArgs[j];
+				const expectedArg = expectedArgs[j];
+				let [shortened] = `${actualArg}`.split('\n');
+				if (20 < shortened.length) {
+					shortened = `${shortened.slice(0, 17)}...`;
+				}
+				shortened = JSON.stringify(shortened);
+				if (expectedArg.test) {
+					console.log(`#${i}.${j} ${expectedArg}.test(${shortened})`);
+					assert.ok(expectedArg.test(actualArg));
+				} else if (typeof expectedArg === 'function') {
+					console.log(`#${i}.${j} ${shortened}`);
+					assert.ok(expectedArg(actualArg));
+				} else {
+					console.log(`#${i}.${j} ${shortened} === ${expectedArg}`);
+					assert.equal(actualArg, expectedArg);
+				}
+			}
+		}
+	});
+})
 .catch((error) => {
 	console.error(error);
 	process.exit(1);
