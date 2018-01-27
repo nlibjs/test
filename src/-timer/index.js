@@ -22,4 +22,4 @@ exports.Timer = class Timer {
 		return s + (ns / 1e9);
 	}
 
-}
+};

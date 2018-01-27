@@ -11,7 +11,6 @@ exports.Test = class Test extends Function {
 		title = process.mainModule.filename,
 		options,
 	} = {}) {
-		super();
 		options = Object.assign({}, parent ? parent.options : defaultOptions, options);
 		const hooks = new Hooks(parent ? parent.hooks : []);
 		if (isObject(options.hooks)) {
@@ -31,9 +30,14 @@ exports.Test = class Test extends Function {
 			fn: [],
 			children: [],
 		};
-		assignFix(this, properties);
-		const add = (...args) => this.add(...args);
-		return assignFix(Object.setPrototypeOf(add, Object.getPrototypeOf(this)), properties);
+		const test = Object.assign(
+			Object.setPrototypeOf(
+				(...args) => test.add(...args),
+				Object.getPrototypeOf(super())
+			),
+			properties
+		);
+		return test;
 	}
 
 	get root() {
@@ -47,7 +51,7 @@ exports.Test = class Test extends Function {
 	* queue() {
 		for (let i = 0; i < this.children.length; i++) {
 			const child = this.children[i];
-			if (!child.done) {
+			if (!child.closed) {
 				yield child;
 			}
 		}
@@ -58,8 +62,11 @@ exports.Test = class Test extends Function {
 	}
 
 	add(title, fn, options) {
-		if (this.done) {
-			throw new Error(`Failed to add a child test because the parent test "${this.title}" is done.`);
+		if (this.closed) {
+			throw Object.assign(
+				new Error(`Failed to add a child test because the parent test "${this.title}" is closed.`),
+				{code: 'ECLOSED'}
+			);
 		}
 		const test = (Array.isArray(title) ? title : [title])
 		.reduce((parent, title) => {
@@ -88,11 +95,16 @@ exports.Test = class Test extends Function {
 		.then(
 			(value) => assignFix(this, {resolved: true, rejected: false, value}),
 			(error) => assignFix(this, {resolved: false, rejected: true, error: Object.assign(
-				isObject(error) ? error : new Error(`The test "${this.title}" failed with ${isObject(error) ? (error.stack || error) : error}.`),
+				isObject(error)
+				? error
+				: Object.assign(
+					new Error(`The test "${this.title}" failed with ${error}.`),
+					{value: error}
+				),
 				{test: this}
 			)})
 		)
-		.then(() => assignFix(this, {done: true, elapsed: timer.stop()}).runChildren())
+		.then(() => assignFix(this, {closed: true, elapsed: timer.stop()}).runChildren())
 		.then(() => this.summarize().callHook('afterEach'))
 		.then(() => 0 < this.failed && this.options.bailout && this.bailout())
 		.then(() => this.isRoot && this.callHook('end'))
@@ -136,8 +148,11 @@ exports.Test = class Test extends Function {
 	}
 
 	summarize() {
-		if (!this.done) {
-			throw new Error(`Failed to summarize the result because the test ${this.title} is not done.`);
+		if (!this.closed) {
+			throw Object.assign(
+				new Error(`Failed to summarize the result because the test ${this.title} is not closed.`),
+				{code: 'EUNCLOSED'}
+			);
 		}
 		if (!this.total) {
 			const errors = [];
