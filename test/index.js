@@ -360,7 +360,7 @@ Promise.resolve()
 	header('Runover');
 	const options = generateOptions();
 	const test = new Test({title: 'root', options});
-	test.runOver(
+	test.compare(
 		{
 			a: 123,
 			b: 'foo',

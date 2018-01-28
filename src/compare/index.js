@@ -1,7 +1,7 @@
 const assert = require('assert');
 const {isObject} = require('../is-object');
 const LINEBREAKS = /\r\n|\r|\n/;
-exports.runOver = function runOver(test, actual, expected, options = {lines: true}) {
+exports.compare = function compare(test, actual, expected, options = {lines: true}) {
 	if (actual === expected) {
 		return;
 	}
@@ -17,7 +17,7 @@ exports.runOver = function runOver(test, actual, expected, options = {lines: tru
 			for (const key of Object.keys(expected)) {
 				const value = actual[key];
 				test(`${key}${isObject(value) || hasLineBreak(value) ? '' : `: ${JSON.stringify(value)}`}`, (test) => {
-					runOver(test, value, expected[key], options);
+					compare(test, value, expected[key], options);
 				});
 			}
 		} else {
