@@ -87,7 +87,7 @@ exports.Test = class Test extends Function {
 	}
 
 	run() {
-		assignFix(this, {run: null});
+		assignFix(this, {run: () => {}});
 		const timer = new Timer(this.options.timeout);
 		return Promise.resolve()
 		.then(() => this.isRoot && this.callHook('start'))
