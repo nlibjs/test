@@ -274,6 +274,30 @@ Promise.resolve()
 	.then(footer);
 })
 .then(() => {
+	header('The second run()');
+	return new Promise((resolve, reject) => {
+		const test = new Test({
+			title: 'root',
+			options: generateOptions({
+				autoRun: true,
+				hooks: {
+					end: () => {
+						try {
+							assert.throws(() => test.run());
+							resolve();
+						} catch (error) {
+							reject(error);
+						}
+					},
+					error: reject,
+				},
+			}),
+		});
+		test('test1', () => {});
+	})
+	.then(footer);
+})
+.then(() => {
 	header('defaultOptions');
 	const $console = {
 		history: [],

@@ -87,7 +87,9 @@ exports.Test = class Test extends Function {
 	}
 
 	run() {
-		assignFix(this, {run: () => {}});
+		assignFix(this, {run: () => {
+			throw new Error(`"${this.title}".run is called twice.`);
+		}});
 		const timer = new Timer(this.options.timeout);
 		return Promise.resolve()
 		.then(() => this.isRoot && this.callHook('start'))
