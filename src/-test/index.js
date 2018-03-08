@@ -81,8 +81,8 @@ exports.Test = class Test extends Function {
 			}
 		}, this);
 		test.fn.push(fn);
-		if (this.isRoot && this.options.autoRun) {
-			this.run();
+		if (this.isRoot && this.options.autoRun && this.children.length === 1) {
+			setImmediate(() => this.run());
 		}
 	}
 
