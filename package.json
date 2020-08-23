@@ -60,7 +60,17 @@
         ],
         "env": {
             "node": true
-        }
+        },
+        "overrides": [
+            {
+                "files": [
+                    "src/testFunction.ts"
+                ],
+                "rules": {
+                    "@typescript-eslint/no-explicit-any": "off"
+                }
+            }
+        ]
     },
     "commitlint": {
         "extends": [
