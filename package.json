@@ -22,7 +22,7 @@
     "scripts": {
         "build": "tsc",
         "test": "ava",
-        "lint": "eslint --ext .ts --ext .js index.js test",
+        "lint": "eslint --ext .ts --ext .js src",
         "version:changelog": "conventional-changelog --preset angular --infile CHANGELOG.md --same-file --release-count 0",
         "version:add": "git add .",
         "version": "run-s version:changelog version:add",
