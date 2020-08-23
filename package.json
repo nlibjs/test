@@ -20,11 +20,13 @@
         "lib"
     ],
     "scripts": {
+        "build": "tsc",
         "test": "ava",
         "lint": "eslint --ext .ts --ext .js index.js test",
         "version:changelog": "conventional-changelog --preset angular --infile CHANGELOG.md --same-file --release-count 0",
         "version:add": "git add .",
-        "version": "run-s version:changelog version:add"
+        "version": "run-s version:changelog version:add",
+        "prepack": "rimraf 'lib/**/*.test.*'"
     },
     "peerDependencies": {
         "ava": ">= 3"
@@ -42,6 +44,7 @@
         "husky": "^4.2.5",
         "lint-staged": "^10.2.11",
         "npm-run-all": "^4.1.5",
+        "rimraf": "^3.0.2",
         "ts-node": "^9.0.0",
         "typescript": "^4.0.2"
     },
