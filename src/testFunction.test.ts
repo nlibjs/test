@@ -11,6 +11,17 @@ const singleSyncTestee = (
 testFunction(singleSyncTestee, {input: 5, expected: 10});
 testFunction(singleSyncTestee, {input: 10, error: {message: 'Input:10'}});
 
+const singleLikeSyncTestee = (
+    input: number,
+) => {
+    if (input < 10) {
+        return {result1: input, result2: input * 2, result3: input * 3};
+    }
+    throw new Error(`Input:${input}`);
+};
+testFunction(singleLikeSyncTestee, {input: 5, like: {result1: 5, result2: 10}});
+testFunction(singleLikeSyncTestee, {input: 10, error: {message: 'Input:10'}});
+
 const multipleSyncTestee = (
     input1: number,
     input2: number,
