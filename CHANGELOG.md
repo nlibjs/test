@@ -1,3 +1,12 @@
+## [3.17.5](https://github.com/nlibjs/test/compare/v3.17.4...v3.17.5) (2020-09-01)
+
+
+### Features
+
+* add like-test ([5d27acb](https://github.com/nlibjs/test/commit/5d27acb50accf356587c2a6fe3607eb614211f65))
+
+
+
 ## [3.17.4](https://github.com/nlibjs/test/compare/v1.3.4...v3.17.4) (2020-08-23)
 
 
