@@ -1,3 +1,4 @@
+import * as util from 'util';
 import ava, {ThrowsExpectation} from 'ava';
 
 export interface SingleParameterTestCase<V> {
@@ -38,6 +39,15 @@ export type TestCase<V> =
 | MultipleParametersLikeTestCase<V>
 | MultipleParametersErrorTestCase;
 
+const stringify = (
+    value: any,
+): string => util.inspect(
+    value,
+    {
+        breakLength: 60,
+        depth: null,
+    },
+);
 
 let count = 0;
 export const getTestName = function* <V>(
@@ -45,16 +55,13 @@ export const getTestName = function* <V>(
     params: Array<any>,
     test: TestCase<V>,
 ): Generator<string> {
-    yield `#${++count} ${testee.name}(`;
-    const parameterString = JSON.stringify(params).slice(1, -1);
-    yield 77 < parameterString.length ? `${parameterString.slice(0, 77)}...` : parameterString;
-    yield ') → ';
+    yield `#${++count} ${testee.name}(${stringify(params).slice(1, -1).trim()}) → `;
     if ('expected' in test) {
-        yield JSON.stringify(test.expected);
+        yield stringify(test.expected);
     } else if ('like' in test) {
-        yield JSON.stringify(test.like);
+        yield stringify(test.like);
     } else {
-        yield `Error ${JSON.stringify(test.error)}`;
+        yield `Error ${stringify(test.error)}`;
     }
 };
 
