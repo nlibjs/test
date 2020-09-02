@@ -63,6 +63,18 @@
         "env": {
             "node": true
         },
+        "rules": {
+            "@nlib/no-globals": [
+                "error",
+                {
+                    "allowed": [
+                        "Error",
+                        "Promise",
+                        "JSON"
+                    ]
+                }
+            ]
+        },
         "overrides": [
             {
                 "files": [
