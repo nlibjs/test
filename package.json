@@ -69,8 +69,7 @@
                 {
                     "allowed": [
                         "Error",
-                        "Promise",
-                        "JSON"
+                        "Promise"
                     ]
                 }
             ]
