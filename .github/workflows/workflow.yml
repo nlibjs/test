@@ -31,8 +31,10 @@ jobs:
       - run: npm install --no-save c8
       - uses: actions/cache@v2
         with:
-          path: lib
-          key: lib-${{ matrix.os }}-${{ github.run_number }}
+          path: |
+            cjs
+            esm
+          key: artifact-${{ matrix.os }}-${{ github.run_number }}
       - run: npm run build
   Test:
     runs-on: ${{ matrix.os }}
@@ -56,8 +58,10 @@ jobs:
           key: node_modules-${{ matrix.os }}-${{ hashFiles('**/package-lock.json') }}
       - uses: actions/cache@v2
         with:
-          path: lib
-          key: lib-${{ matrix.os }}-${{ github.run_number }}
+          path: |
+            cjs
+            esm
+          key: artifact-${{ matrix.os }}-${{ github.run_number }}
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
@@ -86,8 +90,10 @@ jobs:
           key: node_modules-${{ matrix.os }}-${{ hashFiles('**/package-lock.json') }}
       - uses: actions/cache@v2
         with:
-          path: lib
-          key: lib-${{ matrix.os }}-${{ github.run_number }}
+          path: |
+            cjs
+            esm
+          key: artifact-${{ matrix.os }}-${{ github.run_number }}
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
