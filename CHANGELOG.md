@@ -1,3 +1,12 @@
+## [3.18.1](https://github.com/nlibjs/test/compare/v3.18.0...v3.18.1) (2020-09-05)
+
+
+### Bug Fixes
+
+* ci configuration ([b922fa9](https://github.com/nlibjs/test/commit/b922fa963729de5b29d9b956bcf8a1c110cdf506))
+
+
+
 # [3.18.0](https://github.com/nlibjs/test/compare/v3.17.6...v3.18.0) (2020-09-05)
 
 
