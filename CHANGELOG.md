@@ -1,3 +1,13 @@
+## [3.18.4](https://github.com/nlibjs/test/compare/v3.18.3...v3.18.4) (2020-09-05)
+
+
+### Bug Fixes
+
+* the build:esm command ([0689486](https://github.com/nlibjs/test/commit/06894863ae97fca42da50eeb0d907736b2bb27d9))
+* the build:esm command ([3540ee2](https://github.com/nlibjs/test/commit/3540ee2b2a01dab7557dad402c7360ecb90584a1))
+
+
+
 ## [3.18.3](https://github.com/nlibjs/test/compare/v3.18.2...v3.18.3) (2020-09-05)
 
 
