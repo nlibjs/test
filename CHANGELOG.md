@@ -1,3 +1,12 @@
+## [3.18.6](https://github.com/nlibjs/test/compare/v3.18.5...v3.18.6) (2020-09-07)
+
+
+### Bug Fixes
+
+* exports.import ([7162014](https://github.com/nlibjs/test/commit/7162014dcb0ee534f503e51dd76104c458a51f11))
+
+
+
 ## [3.18.5](https://github.com/nlibjs/test/compare/v3.18.4...v3.18.5) (2020-09-07)
 
 
