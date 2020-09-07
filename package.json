@@ -18,7 +18,7 @@
     "type": "module",
     "main": "./esm/index.js",
     "exports": {
-        "import": "./esm/index.js",
+        "import": "./esm/index.mjs",
         "require": "./cjs/index.cjs"
     },
     "files": [
