@@ -67,7 +67,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm run build:index
       - run: npm run lint
-      - run: npx c8 npm test
+      - run: npx c8 npm run test-skipbuild
       - run: npx c8 report --reporter=text-lcov > coverage.lcov
       - uses: codecov/codecov-action@v1
   Publish:

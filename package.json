@@ -39,6 +39,7 @@
         "build:cjs:rename": "replace-ext --directory cjs --entry js/cjs",
         "build:cjs:resolve": "resolve-imports --directory cjs --ext cjs --cjs",
         "test": "run-s build test:*",
+        "test-skipbuild": "run-s test:*",
         "test:type": "tsc --noEmit",
         "test:cjs": "ava './cjs/**/*.test.cjs'",
         "test:esm": "ava './esm/**/*.test.mjs'",
