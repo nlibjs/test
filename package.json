@@ -44,9 +44,9 @@
         "test:cjs": "ava './cjs/**/*.test.cjs'",
         "test:esm": "ava './esm/**/*.test.mjs'",
         "lint": "eslint --ext .ts --ext .js src",
-        "version:changelog": "conventional-changelog --preset angular --infile CHANGELOG.md --same-file --release-count 0",
-        "version:add": "git add .",
-        "version": "run-s version:changelog version:add"
+        "version": "run-s version:changelog version:add",
+        "version:changelog": "nlib-changelog --output CHANGELOG.md",
+        "version:add": "git add ."
     },
     "peerDependencies": {
         "ava": ">= 3"
@@ -54,6 +54,7 @@
     "devDependencies": {
         "@commitlint/cli": "^9.1.2",
         "@commitlint/config-conventional": "^9.1.2",
+        "@nlib/changelog": "^0.1.4",
         "@nlib/eslint-config": "^3.17.11",
         "@nlib/nodetool": "^0.1.8",
         "@types/eslint": "^7.2.2",
@@ -111,5 +112,6 @@
         "extends": [
             "github>nlibjs/renovate-config"
         ]
-    }
+    },
+    "dependencies": {}
 }
