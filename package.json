@@ -24,7 +24,8 @@
     "files": [
         "esm",
         "cjs",
-        "!*.test.*"
+        "!*.test.*",
+        "!*.map"
     ],
     "scripts": {
         "build": "run-s build:*",
