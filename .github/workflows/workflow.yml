@@ -98,6 +98,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org
+      - run: npx remove-sourcemap --directory esm --ext mjs
+      - run: npx remove-sourcemap --directory cjs --ext cjs
       - run: npx cleanup-package-json --file package.json
       - run: npm publish
         env:
