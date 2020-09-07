@@ -31,13 +31,16 @@
         "build:index": "indexen --input src --output src/index.ts",
         "build:esm": "run-s build:esm:*",
         "build:esm:tsc": "tsc",
-        "build:esm:resolve": "resolve-imports --ext js --directory esm",
+        "build:esm:rename": "replace-ext --directory esm --entry js/mjs",
+        "build:esm:resolve": "resolve-imports --directory esm --ext mjs",
         "build:cjs": "run-s build:cjs:*",
         "build:cjs:tsc": "tsc --project tsconfig.cjs.json",
         "build:cjs:rename": "replace-ext --directory cjs --entry js/cjs",
-        "test": "run-s test:*",
+        "build:cjs:resolve": "resolve-imports --directory cjs --ext cjs --cjs",
+        "test": "run-s build test:*",
         "test:type": "tsc --noEmit",
-        "test:unit": "ava",
+        "test:cjs": "ava './cjs/**/*.test.cjs'",
+        "test:esm": "ava './esm/**/*.test.mjs'",
         "lint": "eslint --ext .ts --ext .js src",
         "version:changelog": "conventional-changelog --preset angular --infile CHANGELOG.md --same-file --release-count 0",
         "version:add": "git add .",
@@ -51,7 +54,7 @@
         "@commitlint/cli": "^9.1.2",
         "@commitlint/config-conventional": "^9.1.2",
         "@nlib/eslint-config": "^3.17.11",
-        "@nlib/nodetool": "^0.1.4",
+        "@nlib/nodetool": "^0.1.8",
         "@types/eslint": "^7.2.2",
         "@typescript-eslint/eslint-plugin": "^4.0.1",
         "@typescript-eslint/parser": "^4.0.1",
@@ -62,16 +65,7 @@
         "lint-staged": "^10.3.0",
         "npm-run-all": "^4.1.5",
         "rimraf": "^3.0.2",
-        "sucrase": "^3.15.0",
         "typescript": "^4.0.2"
-    },
-    "ava": {
-        "extensions": [
-            "ts"
-        ],
-        "require": [
-            "sucrase/register/ts"
-        ]
     },
     "eslintConfig": {
         "extends": [
