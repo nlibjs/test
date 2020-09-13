@@ -52,7 +52,7 @@
         "ava": ">= 3"
     },
     "devDependencies": {
-        "@commitlint/cli": "^9.1.2",
+        "@commitlint/cli": "^11.0.0",
         "@commitlint/config-conventional": "^9.1.2",
         "@nlib/changelog": "^0.1.4",
         "@nlib/eslint-config": "^3.17.11",
