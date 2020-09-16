@@ -53,7 +53,7 @@
     },
     "devDependencies": {
         "@commitlint/cli": "^11.0.0",
-        "@commitlint/config-conventional": "^9.1.2",
+        "@commitlint/config-conventional": "^11.0.0",
         "@nlib/changelog": "^0.1.4",
         "@nlib/eslint-config": "^3.17.11",
         "@nlib/nodetool": "^0.1.8",
