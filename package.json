@@ -52,10 +52,9 @@
         "ava": ">= 3"
     },
     "devDependencies": {
-        "@commitlint/cli": "^9.1.2",
-        "@commitlint/config-conventional": "^9.1.2",
         "@nlib/changelog": "^0.1.4",
         "@nlib/eslint-config": "^3.17.11",
+        "@nlib/lint-commit": "^0.1.3",
         "@nlib/nodetool": "^0.1.8",
         "@types/eslint": "^7.2.2",
         "@typescript-eslint/eslint-plugin": "^4.0.1",
@@ -96,7 +95,7 @@
     },
     "husky": {
         "hooks": {
-            "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+            "commit-msg": "nlib-lint-commit --input HUSKY_GIT_PARAMS",
             "pre-commit": "lint-staged"
         }
     },
@@ -112,6 +111,5 @@
         "extends": [
             "github>nlibjs/renovate-config"
         ]
-    },
-    "dependencies": {}
+    }
 }
