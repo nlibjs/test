@@ -58,7 +58,7 @@
         "@nlib/nodetool": "0.1.11",
         "@types/eslint": "7.2.5",
         "@types/node": "14.14.9",
-        "@typescript-eslint/eslint-plugin": "4.8.1",
+        "@typescript-eslint/eslint-plugin": "4.8.2",
         "@typescript-eslint/parser": "4.8.1",
         "ava": "3.13.0",
         "conventional-changelog-cli": "2.1.1",
