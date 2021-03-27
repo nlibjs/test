@@ -53,7 +53,7 @@
     },
     "devDependencies": {
         "@nlib/changelog": "0.1.9",
-        "@nlib/eslint-config": "3.17.16",
+        "@nlib/eslint-config": "3.17.21",
         "@nlib/lint-commit": "0.1.3",
         "@nlib/nodetool": "0.1.11",
         "@types/eslint": "7.2.7",
