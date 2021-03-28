@@ -1,5 +1,6 @@
 import * as util from 'util';
-import ava, {ThrowsExpectation} from 'ava';
+import ava from 'ava';
+import type {ThrowsExpectation} from 'ava';
 
 export interface SingleParameterTestCase<V> {
     input: any,
@@ -32,26 +33,18 @@ export interface MultipleParametersErrorTestCase {
 }
 
 export type TestCase<V> =
-| SingleParameterTestCase<V>
-| SingleParameterLikeTestCase<V>
-| SingleParameterErrorTestCase
-| MultipleParametersTestCase<V>
+| MultipleParametersErrorTestCase
 | MultipleParametersLikeTestCase<V>
-| MultipleParametersErrorTestCase;
+| MultipleParametersTestCase<V>
+| SingleParameterErrorTestCase
+| SingleParameterLikeTestCase<V>
+| SingleParameterTestCase<V>;
 
-const stringify = (
-    value: any,
-): string => util.inspect(
-    value,
-    {
-        breakLength: 60,
-        depth: null,
-    },
-);
+const stringify = (value: unknown): string => util.inspect(value, {breakLength: 60, depth: null});
 
 let count = 0;
-export const getTestName = function* <V>(
-    testee: (...args: Array<any>) => (V | Promise<V>),
+const serializeTestName = function* <V>(
+    testee: (...args: Array<any>) => (Promise<V> | V),
     params: Array<any>,
     test: TestCase<V>,
 ): Generator<string> {
@@ -66,12 +59,12 @@ export const getTestName = function* <V>(
 };
 
 export const testFunction = <V>(
-    testee: (...args: Array<any>) => (V | Promise<V>),
+    testee: (...args: Array<any>) => (Promise<V> | V),
     testCase: TestCase<V>,
 ) => {
     const params = 'input' in testCase ? [testCase.input] : testCase.parameters;
     ava(
-        [...getTestName(testee, params, testCase)].join(''),
+        [...serializeTestName(testee, params, testCase)].join(''),
         async (t) => {
             if ('expected' in testCase) {
                 t.deepEqual(await testee(...params), testCase.expected);
