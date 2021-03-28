@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.4 (2020-09-07)
+## v3.18.7 (2021-03-28)
 
 ### Build System
 
@@ -8,7 +8,16 @@
 
 ### Continuous Integration
 
+- update scripts before publish (d495fa6)
 - add test-skipbuild (6c150a7)
+
+### Dependency Upgrades
+
+- npm audit fix (c7693e4)
+- uninstall conventional-changelog-cli (c6a12d1)
+- upgrade dependencies (#112) (1227e96)
+- install @types/node (47bdd02)
+- upgrade dependencies (25a1b08)
 
 
 ## v3.18.6 (2020-09-07)
@@ -74,15 +83,7 @@
 
 ### Breaking Changes
 
-- setup esm (#8)
-
-* deps: upgrade dependencies
-
-* breaking: setup esm
-
-* test: index
-
-* deps: upgrade nlib/nodetool (0cb9a1b)
+- setup esm (#8) (0cb9a1b)
 
 
 ## v3.17.6 (2020-09-02)
