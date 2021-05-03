@@ -81,10 +81,16 @@ export const testGenerator = <V, R>(
                     }
                 }
             } else {
+                const items: Array<unknown> = [];
                 await t.throwsAsync(
-                    async () => await testee(...params),
+                    async () => {
+                        for await (const item of await testee(...params)) {
+                            items.push(item);
+                        }
+                    },
                     testCase.error,
                 );
+                t.is(items.length, 0);
             }
         },
     );
