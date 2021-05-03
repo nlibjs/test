@@ -1,38 +1,39 @@
-import * as util from 'util';
 import ava from 'ava';
 import type {ThrowsExpectation} from 'ava';
+import {serialize} from './serialize';
+import {getTestId} from './getTestId';
 
-export interface SingleParameterTestCase<V> {
-    input: any,
+interface SingleParameterTestCase<V> {
+    input: unknown,
     expected: V,
 }
 
-export interface SingleParameterLikeTestCase<V> {
-    input: any,
+interface SingleParameterLikeTestCase<V> {
+    input: unknown,
     like: Partial<V>,
 }
 
-export interface SingleParameterErrorTestCase {
-    input: any,
+interface SingleParameterErrorTestCase {
+    input: unknown,
     error: ThrowsExpectation,
 }
 
-export interface MultipleParametersTestCase<V> {
-    parameters: Array<any>,
+interface MultipleParametersTestCase<V> {
+    parameters: Array<unknown>,
     expected: V,
 }
 
-export interface MultipleParametersLikeTestCase<V> {
-    parameters: Array<any>,
+interface MultipleParametersLikeTestCase<V> {
+    parameters: Array<unknown>,
     like: Partial<V>,
 }
 
-export interface MultipleParametersErrorTestCase {
-    parameters: Array<any>,
+interface MultipleParametersErrorTestCase {
+    parameters: Array<unknown>,
     error: ThrowsExpectation,
 }
 
-export type TestCase<V> =
+type TestCase<V> =
 | MultipleParametersErrorTestCase
 | MultipleParametersLikeTestCase<V>
 | MultipleParametersTestCase<V>
@@ -40,31 +41,29 @@ export type TestCase<V> =
 | SingleParameterLikeTestCase<V>
 | SingleParameterTestCase<V>;
 
-const stringify = (value: unknown): string => util.inspect(value, {breakLength: 60, depth: null});
-
-let count = 0;
-const serializeTestName = function* <V>(
-    testee: (...args: Array<any>) => (Promise<V> | V),
-    params: Array<any>,
+const serializeFunctionTestName = function* <V>(
+    testee: (...args: Array<unknown>) => (Promise<V> | V),
+    params: Array<unknown>,
     test: TestCase<V>,
 ): Generator<string> {
-    yield `#${++count} ${testee.name}(${stringify(params).slice(1, -1).trim()}) → `;
+    yield `#${getTestId()} ${testee.name}(${serialize(params).slice(1, -1).trim()}) → `;
     if ('expected' in test) {
-        yield stringify(test.expected);
+        yield serialize(test.expected);
     } else if ('like' in test) {
-        yield stringify(test.like);
+        yield serialize(test.like);
     } else {
-        yield `Error ${stringify(test.error)}`;
+        yield `Error ${serialize(test.error)}`;
     }
 };
 
 export const testFunction = <V>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     testee: (...args: Array<any>) => (Promise<V> | V),
     testCase: TestCase<V>,
 ) => {
     const params = 'input' in testCase ? [testCase.input] : testCase.parameters;
     ava(
-        [...serializeTestName(testee, params, testCase)].join(''),
+        [...serializeFunctionTestName(testee, params, testCase)].join(''),
         async (t) => {
             if ('expected' in testCase) {
                 t.deepEqual(await testee(...params), testCase.expected);
