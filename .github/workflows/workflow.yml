@@ -29,13 +29,14 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm ci
       - run: npm install --no-save c8
+      - run: npm run lint
+      - run: npm run build
       - uses: actions/cache@v2
         with:
           path: |
             cjs
             esm
           key: artifact-${{ matrix.os }}-${{ github.run_number }}
-      - run: npm run build
   Test:
     runs-on: ${{ matrix.os }}
     needs:
@@ -65,9 +66,7 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
-      - run: npm run build:index
-      - run: npm run lint
-      - run: npx c8 npm run test-skipbuild
+      - run: npx c8 npm test
       - run: npx c8 report --reporter=text-lcov > coverage.lcov
       - uses: codecov/codecov-action@v1
   Publish:
@@ -98,7 +97,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org
-      - run: npx remove-sourcemap --directory esm --directory cjs
       - run: npx cleanup-package-json --file package.json
       - run: npm publish
         env:
