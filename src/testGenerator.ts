@@ -1,12 +1,12 @@
 import ava from 'ava';
 import {serialize} from './serialize';
-import type {GeneratorItem, GeneratorTestee} from './type';
+import type {GeneratorTestee} from './type';
 import {getFunctionTestPrefix} from './getFunctionTestPrefix';
 
-export const testGenerator = <Fn extends GeneratorTestee>(testee: Fn, ...args: [...Parameters<Fn>, Array<GeneratorItem<Fn>>]) => {
-    const items = args.pop() as Array<GeneratorItem<Fn>>;
+export const testGenerator = <Item, Fn extends GeneratorTestee<Item>>(testee: Fn, ...args: [...Parameters<Fn>, Array<Item>]) => {
+    const items = args.pop() as Array<Item>;
     ava(
-        `${getFunctionTestPrefix(testee, args)}${args.map((value) => `→${serialize(value)}`)}`,
+        `${getFunctionTestPrefix(testee, args)}${items.map((value) => `→${serialize(value)}`)}`,
         async (t) => {
             const generator = await Promise.resolve(testee(...args));
             for (const value of items) {
