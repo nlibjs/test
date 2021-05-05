@@ -1,48 +1,29 @@
 import {testFunction} from './testFunction';
 
-const singleSyncTestee = (input: number) => {
-    if (input < 10) {
-        return input * 2;
-    }
-    throw new Error(`Input:${input}`);
-};
-testFunction(singleSyncTestee, {input: 5, expected: 10});
-testFunction(singleSyncTestee, {input: 10, error: {message: 'Input:10'}});
+const syncPrimitiveTestee = (...args: Array<number>) => args.reduce((sum, value) => sum + value, 0);
+testFunction(syncPrimitiveTestee, 5, 5);
+testFunction(syncPrimitiveTestee, 5, 7, 12);
 
-const singleLikeSyncTestee = (input: number) => {
-    if (input < 10) {
-        return {result1: input, result2: input * 2, result3: input * 3};
-    }
-    throw new Error(`Input:${input}`);
+const asyncPrimitiveTestee = async (...args: Array<number>) => {
+    await Promise.resolve();
+    return args.reduce((sum, value) => sum + value, 0);
 };
-testFunction(singleLikeSyncTestee, {input: 5, like: {result1: 5, result2: 10}});
-testFunction(singleLikeSyncTestee, {input: 10, error: {message: 'Input:10'}});
+testFunction(asyncPrimitiveTestee, 5, 5);
+testFunction(asyncPrimitiveTestee, 5, 7, 12);
 
-const multipleSyncTestee = (input1: number, input2: number) => {
-    if (input1 < 10) {
-        return input1 + input2;
-    }
-    throw new Error(`Input:${input1},${input2}`);
+const syncObjectTestee = (...args: Array<number>) => {
+    const sum = args.reduce((s, value) => s + value, 0);
+    const mean = sum / args.length;
+    return {sum, mean};
 };
-testFunction(multipleSyncTestee, {parameters: [1, 2], expected: 3});
-testFunction(multipleSyncTestee, {parameters: [10, 11], error: {message: 'Input:10,11'}});
+testFunction(syncObjectTestee, 5, {sum: 5, mean: 5});
+testFunction(syncObjectTestee, 5, 7, {sum: 12, mean: 6});
 
-const singleAsyncTestee = async (input: number) => {
-    await Promise.resolve(input);
-    if (input < 10) {
-        return input * 2;
-    }
-    throw new Error(`Input:${input}`);
+const asyncObjectTestee = async (...args: Array<number>) => {
+    await Promise.resolve();
+    const sum = args.reduce((s, value) => s + value, 0);
+    const mean = sum / args.length;
+    return {sum, mean};
 };
-testFunction(singleAsyncTestee, {input: 5, expected: 10});
-testFunction(singleAsyncTestee, {input: 10, error: {message: 'Input:10'}});
-
-const multipleAsyncTestee = async (input1: number, input2: number) => {
-    await Promise.resolve(input1);
-    if (input1 < 10) {
-        return input1 + input2;
-    }
-    throw new Error(`Input:${input1},${input2}`);
-};
-testFunction(multipleAsyncTestee, {parameters: [1, 2], expected: 3});
-testFunction(multipleAsyncTestee, {parameters: [10, 11], error: {message: 'Input:10,11'}});
+testFunction(asyncObjectTestee, 5, {sum: 5, mean: 5});
+testFunction(asyncObjectTestee, 5, 7, {sum: 12, mean: 6});

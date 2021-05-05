@@ -3,10 +3,10 @@ import type {ResolvedValue, Testee} from './type';
 import {serialize} from './serialize';
 import {getFunctionTestPrefix} from './getFunctionTestPrefix';
 
-export const testFunction = <Fn extends Testee>(testee: Fn, ...args: [...Parameters<Fn>, ResolvedValue<ReturnType<Fn>>]) => {
+export const testFunctionPartially = <Fn extends Testee>(testee: Fn, ...args: [...Parameters<Fn>, Partial<ResolvedValue<ReturnType<Fn>>>]) => {
     const result = args.pop();
     ava(
         `${getFunctionTestPrefix(testee, args)}→${serialize(result)}`,
-        async (t) => t.deepEqual(await testee(...args), result),
+        async (t) => t.like(await testee(...args), result as Record<string, unknown>),
     );
 };
